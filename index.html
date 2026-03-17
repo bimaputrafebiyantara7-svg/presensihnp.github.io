@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>Sistem Presensi HNP</title>
+    <meta name="description" content="Aplikasi Presensi HNP Wedding Organizer">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Presensi HNP">
+
+    <!-- MANIFEST JSON -->
+    <link rel="manifest" href='data:application/json;charset=utf-8,%7B%22name%22%3A%22Sistem%20Presensi%20HNP%22%2C%22short_name%22%3A%22Presensi%20HNP%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22theme_color%22%3A%22%23000000%22%2C%22background_color%22%3A%22%23000000%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fupload.wikimedia.org%2Fwikipedia%2Fcommons%2F8%2F8a%2FLogo_hnp.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D'>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/8/8a/Logo_hnp.png?v=2">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/8/8a/Logo_hnp.png?v=2">
+    
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Global Error:", message, "at", source, ":", lineno);
+            return false;
+        };
+    </script>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'gold-primary': '#D4AF37',
+                        'gold-light': '#FFD700',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --gold-primary: #D4AF37;
+            --gold-light: #FFD700;
+            --gold-glow: rgba(255, 215, 0, 0.3);
+            --blue-royal: #1e3a8a;
+        }
+
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: #000000;
+            background-image: 
+                radial-gradient(circle at 90% 10%, rgba(255, 215, 0, 0.4) 0%, transparent 60%),
+                radial-gradient(circle at 10% 90%, rgba(212, 175, 55, 0.3) 0%, transparent 60%),
+                radial-gradient(circle at 10% 10%, rgba(30, 58, 138, 0.6) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, transparent 0%, #000000 100%);
+            background-attachment: fixed;
+            color: #f8fafc;
+            margin: 0;
+            overscroll-behavior-y: none;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.08) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .os-window {
+            background: rgba(15, 20, 35, 0.75);
+            backdrop-filter: blur(30px) saturate(120%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8);
+        }
+
+        .os-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: 0.3s;
+        }
+        .os-input:focus {
+            border-color: var(--gold-light);
+            box-shadow: 0 0 15px var(--gold-glow);
+            outline: none;
+            background: rgba(0, 0, 0, 0.6);
+        }
+        
+        select.os-input option {
+            background-color: #0f1423;
+            color: white;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #b45309 0%, #D4AF37 50%, #FFD700 100%);
+            color: #0a0a0a;
+            font-weight: 800;
+            transition: transform 0.2s;
+        }
+        .btn-gold:active { transform: scale(0.98); }
+        .btn-disabled { background: linear-gradient(135deg, #451225 0%, #991b1b 100%) !important; color: #fecaca !important; cursor: not-allowed !important; opacity: 0.7; }
+
+        .selection-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .selection-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold-light);
+            box-shadow: 0 10px 30px -5px rgba(255, 215, 0, 0.2);
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #video-element { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+        #user-map {
+            height: 180px;
+            width: 100%;
+            border-radius: 1.25rem;
+            margin-top: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+        }
+
+        .text-gold-gradient {
+            background: linear-gradient(to right, #F3E5AB, #FFD700, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #FFD700; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
+
+        .animate-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .logo-hologram { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3)); }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 50;
+        }
+
+        .leaflet-container { background: #111 !important; }
+        
+        .custom-checkbox input:checked + div {
+            background-color: #10B981;
+            border-color: #10B981;
+        }
+        .custom-checkbox input:checked + div svg {
+            display: block;
+        }
+
+        /* Biometric Animations */
+        .biometric-scanner-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.92);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .bio-icon-container { position: relative; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+        .fingerprint-icon { font-size: 60px; color: rgba(255, 215, 0, 0.2); }
+        .fingerprint-active {
+            position: absolute; inset: 0;
+            color: #D4AF37;
+            overflow: hidden;
+            animation: bioScan 1.5s ease-in-out infinite;
+            display: flex; align-items: center; justify-content: center;
+            clip-path: inset(100% 0 0 0);
+        }
+        .fingerprint-active i { font-size: 60px; }
+        @keyframes bioScan {
+            0% { clip-path: inset(100% 0 0 0); }
+            50% { clip-path: inset(0 0 0 0); }
+            100% { clip-path: inset(0 0 100% 0); }
+        }
+        .face-id-frame {
+            width: 120px; height: 120px; border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .face-id-scanner {
+            width: 100%; height: 2px; background: #D4AF37;
+            box-shadow: 0 0 15px #D4AF37;
+            position: absolute; top: 10px;
+            animation: faceScan 1.5s ease-in-out infinite alternate;
+        }
+        @keyframes faceScan { from { top: 10%; opacity: 0.5; } to { top: 90%; opacity: 1; } }
+
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10B981;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10B981;
+        }
+        .toggle-checkbox:checked + .toggle-label:before {
+            transform: translateX(100%);
+        }
+        
+        .toggle-label {
+            width: 40px;
+            height: 20px;
+            position: relative;
+            display: block;
+            background: #374151;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .toggle-label:before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // ==========================================
+        // --- KONFIGURASI API GITHUB PAGES ---
+        // ==========================================
+        // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI BAWAH INI:
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyo5iQVINgUbfzJKLr75w5X6FvHetvJ7d7e4mQdt-w0ITFQTknLQFgaCvoQwWnPOPTQ3w/exec"; 
+
+        const apiCall = async (action, data = {}) => {
+            try {
+                const response = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: action, data: data })
+                });
+                const result = await response.json();
+                if (result && result.status === 'Error') throw new Error(result.message);
+                return result;
+            } catch (err) {
+                console.error("API Error:", err);
+                throw err;
+            }
+        };
+
+        // --- UTILS ---
+        function getDistance(lat1, lon1, lat2, lon2) {
+            if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return null;
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; 
+        }
+
+        const parseDateString = (dStr) => {
+            if (!dStr) return 0;
+            const months = { 'Jan': 0, 'Januari': 0, 'Feb': 1, 'Februari': 1, 'Mar': 2, 'Maret': 2, 'Apr': 3, 'April': 3, 'Mei': 4, 'May': 4, 'Jun': 5, 'Juni': 5, 'Jul': 6, 'Juli': 6, 'Agu': 7, 'Agustus': 7, 'Aug': 7, 'Sep': 8, 'September': 8, 'Okt': 9, 'Oktober': 9, 'Oct': 9, 'Nov': 10, 'November': 10, 'Des': 11, 'Desember': 11, 'Dec': 11 };
+            const cleanStr = dStr.replace(/,/g, '');
+            const parts = cleanStr.split(' ');
+            let startIdx = 0;
+            if (isNaN(parseInt(parts[0]))) { startIdx = 1; }
+            if (parts.length < startIdx + 3) return 0;
+            const day = parseInt(parts[startIdx]);
+            const monthStr = parts[startIdx + 1];
+            let month = months[monthStr];
+            if (month === undefined && monthStr) {
+                const capMonth = monthStr.charAt(0).toUpperCase() + monthStr.slice(1).toLowerCase();
+                month = months[capMonth] ?? 0;
+            }
+            const year = parseInt(parts[startIdx + 2]);
+            return new Date(year, month, day).getTime();
+        };
+
+        const cleanTime = (rawTime) => {
+            if (!rawTime) return "--:--";
+            if (/^\d{1,2}:\d{2}/.test(rawTime)) return rawTime;
+            if (typeof rawTime === 'string' && rawTime.includes('GMT')) {
+                const date = new Date(rawTime);
+                if (!isNaN(date)) {
+                    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':');
+                }
+            }
+            return rawTime;
+        };
+
+        const calculateTimeDiff = (time1, time2) => {
+            if(!time1 || !time2) return null;
+            const [h1, m1] = time1.split(':').map(Number);
+            const [h2, m2] = time2.split(':').map(Number);
+            let minutes1 = h1 * 60 + m1;
+            let minutes2 = h2 * 60 + m2;
+            if (minutes2 < minutes1) minutes2 += 24 * 60; 
+            let diff = minutes2 - minutes1;
+            const hours = Math.floor(diff / 60);
+            const minutes = diff % 60;
+            return `${hours} Jam ${minutes} Menit`;
+        };
+
+        const getWorkingDuration = (currentLog, allLogsInDay) => {
+            const loc = (currentLog.loc || "").toLowerCase();
+            if (!loc.includes("pulang")) return null;
+
+            let category = 'full time';
+            if (loc.includes('setengah hari')) category = 'setengah hari';
+            else if (loc.includes('khusus')) category = 'khusus';
+            else if (loc.includes('ekstra')) category = 'ekstra';
+
+            const matchingHadir = allLogsInDay.find(l => {
+                const lLoc = (l.loc || "").toLowerCase();
+                return lLoc.includes("hadir") && lLoc.includes(category);
+            });
+
+            if (matchingHadir) {
+                return calculateTimeDiff(matchingHadir.time, currentLog.time);
+            }
+            return null;
+        };
+
+        const calculateStats = (dataList) => {
+            let fullTimeCount = 0, halfDayCount = 0, permitCount = 0, khususCount = 0, ekstraCount = 0;
+            const grouped = {};
+
+            dataList.forEach(p => {
+                const loc = (p.loc || "").toLowerCase();
+                const key = p.date;
+                
+                let type = 'unknown';
+                if (loc.includes('full time')) type = 'full';
+                else if (loc.includes('setengah hari')) type = 'half';
+                else if (loc.includes('izin')) type = 'izin';
+                else if (loc.includes('khusus')) type = 'khusus';
+                else if (loc.includes('ekstra')) type = 'ekstra';
+
+                if (!grouped[key]) grouped[key] = { full:[], half:[], izin:[], khusus:[], ekstra:[] };
+                grouped[key][type].push(loc);
+            });
+
+            Object.values(grouped).forEach(dayGroup => {
+                if (dayGroup.izin.length > 0) permitCount += dayGroup.izin.length;
+
+                const hasFullHadir = dayGroup.full.some(l => l.includes('| hadir |'));
+                const hasFullPulang = dayGroup.full.some(l => l.includes('| pulang |'));
+                if (hasFullHadir && hasFullPulang) fullTimeCount++;
+
+                const hasHalfHadir = dayGroup.half.some(l => l.includes('| hadir |'));
+                const hasHalfPulang = dayGroup.half.some(l => l.includes('| pulang |'));
+                if (hasHalfHadir && hasHalfPulang) halfDayCount++;
+
+                const khususHadirCount = dayGroup.khusus.filter(l => l.includes('| hadir |')).length;
+                const khususPulangCount = dayGroup.khusus.filter(l => l.includes('| pulang |')).length;
+                khususCount += Math.min(khususHadirCount, khususPulangCount);
+
+                const ekstraHadirCount = dayGroup.ekstra.filter(l => l.includes('| hadir |')).length;
+                const ekstraPulangCount = dayGroup.ekstra.filter(l => l.includes('| pulang |')).length;
+                ekstraCount += Math.min(ekstraHadirCount, ekstraPulangCount);
+            });
+
+            const total = fullTimeCount + halfDayCount + permitCount + khususCount + ekstraCount;
+            return { total, fullTimeCount, halfDayCount, permitCount, khususCount, ekstraCount };
+        };
+
+        const formatLocationData = (locStr) => {
+            if (!locStr) return { address: "-", badges: [] };
+            const parts = locStr.split('|').map(s => s.trim());
+            const badges = [];
+            
+            let address = parts[0]; 
+            
+            parts.forEach((part, index) => {
+                if (index === 0) return; 
+                
+                if (part.includes("TERLAMBAT")) {
+                    badges.push(<span key={index} className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 mt-1 w-fit">{part}</span>);
+                } else if (part.includes("TEPAT WAKTU")) {
+                    badges.push(<span key={index} className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 mt-1 w-fit">{part}</span>);
+                } else if (part.includes("OVERTIME")) {
+                    badges.push(<span key={index} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 mt-1 w-fit">{part}</span>);
+                } else if (part.includes("PULANG NORMAL")) {
+                    badges.push(<span key={index} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 mt-1 w-fit">{part}</span>);
+                }
+            });
+            
+            return { address, badges };
+        };
+
+        function AdminApp() {
+            const [view, setView] = useState('login'); 
+            const [dashTab, setDashTab] = useState('presence');
+            const [currentUser, setCurrentUser] = useState(null);
+            
+            const [presences, setPresences] = useState([]);
+            const [coords, setCoords] = useState({ lat: null, lng: null, accuracy: null });
+            const [isLoading, setIsLoading] = useState(false);
+            const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+            const [adminSettings, setAdminSettings] = useState({ targetLat: -7.870892, targetLng: 110.269158 });
+            const [distanceToTarget, setDistanceToTarget] = useState(null);
+            const [todayStatus, setTodayStatus] = useState('none');
+            const [locationErrorMsg, setLocationErrorMsg] = useState(null); 
+
+            const [selectionStage, setSelectionStage] = useState('type'); 
+            const [selectedDuration, setSelectedDuration] = useState(''); 
+            const [presenceType, setPresenceType] = useState('Hadir'); 
+            const [permitReason, setPermitReason] = useState('');
+            const [filterType, setFilterType] = useState('all');
+
+            const [cameraFailed, setCameraFailed] = useState(false);
+            const [fallbackImage, setFallbackImage] = useState(null);
+            const [cameraErrorMsg, setCameraErrorMsg] = useState(null);
+            const [isRequestingCamera, setIsRequestingCamera] = useState(false);
+
+            const [shiftList, setShiftList] = useState([]);
+            const [selectedShift, setSelectedShift] = useState('');
+            const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+            
+            const [logViewMode, setLogViewMode] = useState('months'); 
+            const [selectedLogMonth, setSelectedLogMonth] = useState(null);
+            const [selectedLogDate, setSelectedLogDate] = useState(null);
+            const [showDetailStats, setShowDetailStats] = useState(false);
+            
+            const [showPassword, setShowPassword] = useState(false);
+            const [showRegPassword, setShowRegPassword] = useState(false);
+
+            const [sortOrder, setSortOrder] = useState('desc');
+
+            const [filterDay, setFilterDay] = useState('');
+            const [filterMonth, setFilterMonth] = useState('');
+            const [filterYear, setFilterYear] = useState('');
+
+            const [agendaViewMode, setAgendaViewMode] = useState('personal'); 
+            const [agendas, setAgendas] = useState([]); 
+            const [sharedAgendas, setSharedAgendas] = useState([]); 
+            const [showAgendaForm, setShowAgendaForm] = useState(false);
+            const [newAgenda, setNewAgenda] = useState({ title: '', desc: '', date: '', visibility: 'Private' });
+            const [agendaSortOrder, setAgendaSortOrder] = useState('desc');
+
+            const [currentMonth, setCurrentMonth] = useState(new Date());
+            const [filterDate, setFilterDate] = useState(null);
+
+            const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+            const [isEditingProfile, setIsEditingProfile] = useState(false);
+            const [editForm, setEditForm] = useState({});
+
+            const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false);
+            const [selectedLog, setSelectedLog] = useState(null);
+
+            const [isBiometricActive, setIsBiometricActive] = useState(false);
+            const [biometricType, setBiometricType] = useState('face'); 
+            const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+            const [allUsersList, setAllUsersList] = useState([]); 
+            const [showArchived, setShowArchived] = useState(false); 
+            const [assignTo, setAssignTo] = useState([]); 
+
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const streamRef = useRef(null);
+            const mapUserRef = useRef(null);
+            const markerUserRef = useRef(null);
+
+            const [loginForm, setLoginForm] = useState({ user: '', pass: '' });
+            const [regForm, setRegForm] = useState({ fullName: '', nickname: '', position: '', nik: '', user: '', pass: '', profilePic: '' });
+
+            const logoUrl = "https://upload.wikimedia.org/wikipedia/commons/8/8a/Logo_hnp.png";
+            const [jabatanOptions, setJabatanOptions] = useState([]);
+
+            const days = Array.from({length: 31}, (_, i) => i + 1);
+            const monthsNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const currentYear = new Date().getFullYear();
+            const years = [currentYear - 1, currentYear, currentYear + 1];
+
+            useEffect(() => {
+                if (currentUser) {
+                    apiCall('getAllUsersList')
+                        .then(setAllUsersList)
+                        .catch(() => {
+                            setAllUsersList([
+                                { username: 'demo', fullName: 'Demo User', position: 'Manager' },
+                                { username: 'staff1', fullName: 'Budi Santoso', position: 'Staff' }
+                            ]);
+                        });
+                }
+            }, [currentUser]);
+
+            useEffect(() => {
+                const isBioEnabled = localStorage.getItem('hnp_biometric_enabled') === 'true';
+                setBiometricEnabled(isBioEnabled);
+            }, []);
+            
+            const loadShifts = () => {
+                apiCall('getShiftsFromSheet')
+                    .then(data => {
+                        if (Array.isArray(data)) setShiftList(data);
+                    })
+                    .catch(err => console.error("Gagal load shifts", err));
+            };
+
+            useEffect(() => {
+                if (currentUser) {
+                    loadShifts();
+                }
+            }, [currentUser]);
+
+            useEffect(() => {
+                if (view === 'register') {
+                    apiCall('getJobPositions')
+                        .then(data => {
+                            if(Array.isArray(data) && data.length > 0) setJabatanOptions(data);
+                            else setJabatanOptions(["Founder","Manager","Admin","Staff"]);
+                        })
+                        .catch(() => setJabatanOptions(["Founder","Manager","Admin","Staff"]));
+                }
+            }, [view]);
+
+            const globalStats = useMemo(() => calculateStats(presences), [presences]);
+
+            const filteredRawPresences = useMemo(() => {
+                let data = presences;
+                if (filterType !== 'all') {
+                    data = data.filter(p => {
+                        const lowerLoc = (p.loc || "").toLowerCase();
+                        if (filterType === 'full') return lowerLoc.includes('full time');
+                        if (filterType === 'half') return lowerLoc.includes('setengah hari');
+                        if (filterType === 'izin') return lowerLoc.includes('izin') || lowerLoc.includes('[izin]');
+                        if (filterType === 'khusus') return lowerLoc.includes('khusus') || lowerLoc.includes('[khusus]');
+                        if (filterType === 'ekstra') return lowerLoc.includes('ekstra');
+                        return true;
+                    });
+                }
+                if (filterDay || filterMonth || filterYear) {
+                    data = data.filter(p => {
+                        const timestamp = parseDateString(p.date);
+                        if (!timestamp) return false;
+                        const dateObj = new Date(timestamp);
+                        const pDay = dateObj.getDate();
+                        const pMonth = dateObj.getMonth();
+                        const pYear = dateObj.getFullYear();
+                        let matchDay = true, matchMonth = true, matchYear = true;
+                        
+                        if (filterDay) { const fDay = parseInt(filterDay); if (!isNaN(fDay)) matchDay = pDay === fDay; }
+                        if (filterMonth) {
+                             const cleanInput = filterMonth.toLowerCase().trim();
+                             let targetIdx = -1;
+                             const num = parseInt(cleanInput);
+                             if (!isNaN(num) && num >= 1 && num <= 12) targetIdx = num - 1;
+                             else {
+                                 const monthMap = { 'jan':0,'januari':0,'feb':1,'februari':1,'mar':2,'maret':2,'apr':3,'april':3,'mei':4,'may':4,'jun':5,'juni':5,'jul':6,'juli':6,'agu':7,'agustus':7,'aug':7,'sep':8,'september':8,'okt':9,'oktober':9,'nov':10,'november':10,'des':11,'desember':11 };
+                                 if (monthMap[cleanInput] !== undefined) targetIdx = monthMap[cleanInput];
+                                 else { const shortInput = cleanInput.substring(0,3); if(monthMap[shortInput]!==undefined) targetIdx=monthMap[shortInput]; }
+                             }
+                             if(targetIdx!==-1) matchMonth = pMonth === targetIdx; else matchMonth = false;
+                        }
+                        if (filterYear) { const fYear = parseInt(filterYear); if (!isNaN(fYear)) matchYear = pYear === fYear; }
+                        return matchDay && matchMonth && matchYear;
+                    });
+                }
+                return [...data].sort((a, b) => {
+                    const dateA = parseDateString(a.date);
+                    const dateB = parseDateString(b.date);
+                    if (dateA !== dateB) return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+                    const tPartsA = (a.time || "00:00").split(':');
+                    const tPartsB = (b.time || "00:00").split(':');
+                    const minutesA = (parseInt(tPartsA[0]) || 0) * 60 + (parseInt(tPartsA[1]) || 0);
+                    const minutesB = (parseInt(tPartsB[0]) || 0) * 60 + (parseInt(tPartsB[1]) || 0);
+                    return sortOrder === 'desc' ? minutesB - minutesA : minutesA - minutesB;
+                });
+            }, [presences, filterType, sortOrder, filterDay, filterMonth, filterYear]);
+
+            useEffect(() => {
+                if (!filterDay && !filterMonth && !filterYear) return;
+
+                const uniqueMonths = new Set();
+                const uniqueDates = new Set();
+                let lastDate = null;
+                let lastMonthKey = null;
+
+                filteredRawPresences.forEach(p => {
+                    uniqueDates.add(p.date);
+                    lastDate = p.date;
+                    
+                    const ts = parseDateString(p.date);
+                    if (ts) {
+                        const d = new Date(ts);
+                        const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`;
+                        uniqueMonths.add(key);
+                        lastMonthKey = key;
+                    }
+                });
+
+                if (uniqueDates.size === 1 && lastDate) {
+                    if (lastMonthKey) setSelectedLogMonth(lastMonthKey);
+                    setSelectedLogDate(lastDate);
+                    setLogViewMode('entries');
+                } else if (uniqueMonths.size === 1 && lastMonthKey) {
+                    setSelectedLogMonth(lastMonthKey);
+                    setSelectedLogDate(null);
+                    setLogViewMode('days');
+                }
+            }, [filterDay, filterMonth, filterYear, filteredRawPresences]);
+
+            const availableMonths = useMemo(() => {
+                const groups = {};
+                filteredRawPresences.forEach(p => {
+                    const ts = parseDateString(p.date);
+                    if(ts) {
+                        const d = new Date(ts);
+                        const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`; 
+                        if(!groups[key]) {
+                            groups[key] = {
+                                key,
+                                label: d.toLocaleString('id-ID', { month: 'long', year: 'numeric' }),
+                                count: 0,
+                                data: [], 
+                                timestamp: new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+                            };
+                        }
+                        groups[key].count++;
+                        groups[key].data.push(p); 
+                    }
+                });
+                return Object.values(groups).map(g => {
+                    const stats = calculateStats(g.data);
+                    return { ...g, stats };
+                }).sort((a,b) => b.timestamp - a.timestamp); 
+            }, [filteredRawPresences]);
+
+            const monthSpecificData = useMemo(() => {
+                if (!selectedLogMonth) return [];
+                const [yearStr, monthIdxStr] = selectedLogMonth.split('-');
+                const targetYear = parseInt(yearStr);
+                const targetMonthIdx = parseInt(monthIdxStr);
+                
+                return presences.filter(p => {
+                      const ts = parseDateString(p.date);
+                      if(!ts) return false;
+                      const d = new Date(ts);
+                      return d.getFullYear() === targetYear && d.getMonth() === targetMonthIdx;
+                });
+            }, [presences, selectedLogMonth]);
+
+            const monthStats = useMemo(() => calculateStats(monthSpecificData), [monthSpecificData]);
+
+            const availableDaysInMonth = useMemo(() => {
+                if(!selectedLogMonth) return [];
+                const [yearStr, monthIdxStr] = selectedLogMonth.split('-');
+                const targetYear = parseInt(yearStr);
+                const targetMonthIdx = parseInt(monthIdxStr);
+
+                const days = [];
+                const seenDates = new Set();
+                
+                filteredRawPresences.forEach(p => {
+                      const ts = parseDateString(p.date);
+                      if(ts) {
+                          const d = new Date(ts);
+                          if (d.getFullYear() === targetYear && d.getMonth() === targetMonthIdx) {
+                              if(!seenDates.has(p.date)) {
+                                  seenDates.add(p.date);
+                                  days.push({
+                                      dateStr: p.date,
+                                      timestamp: ts,
+                                      logCount: filteredRawPresences.filter(x => x.date === p.date).length
+                                  });
+                              }
+                          }
+                      }
+                });
+                return days.sort((a, b) => sortOrder === 'desc' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp);
+            }, [filteredRawPresences, selectedLogMonth, sortOrder]);
+
+
+            const dateSpecificLogs = useMemo(() => {
+                if (!selectedLogDate) return [];
+                return filteredRawPresences.filter(p => p.date === selectedLogDate);
+            }, [filteredRawPresences, selectedLogDate]);
+
+            const handleMonthClick = (monthKey) => {
+                setSelectedLogMonth(monthKey);
+                setLogViewMode('days');
+                setFilterType('all');
+                setShowDetailStats(false); 
+            };
+
+            const handleDayClick = (dateStr) => {
+                setSelectedLogDate(dateStr);
+                setLogViewMode('entries');
+            };
+
+            const handleBackToMonths = () => {
+                setSelectedLogMonth(null);
+                setLogViewMode('months');
+                setFilterType('all');
+                setShowDetailStats(false);
+            };
+
+            const handleBackToDays = () => {
+                setSelectedLogDate(null);
+                setLogViewMode('days');
+            };
+
+            const handleFilterChange = (type) => { 
+                setFilterType(type); 
+            };
+
+            const resetDateFilters = () => { setFilterDay(''); setFilterMonth(''); setFilterYear(''); };
+
+            const loadAgendas = () => { 
+                if (currentUser) { 
+                    apiCall('getUserAgendas', { username: currentUser.username })
+                        .then(setAgendas).catch(console.error);
+                    apiCall('getSharedAgendas')
+                        .then(setSharedAgendas).catch(console.error);
+                } 
+            };
+
+            const displayedAgendas = useMemo(() => {
+                let source = agendaViewMode === 'personal' ? agendas : sharedAgendas;
+                let filtered = filterDate ? source.filter(a => a.date === filterDate) : [...source];
+                
+                if (!showArchived) {
+                    filtered = filtered.filter(a => !a.isDone);
+                } else {
+                    filtered = filtered.filter(a => a.isDone);
+                }
+
+                return filtered.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    return agendaSortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+                });
+            }, [agendas, sharedAgendas, agendaViewMode, filterDate, agendaSortOrder, showArchived]);
+
+            const changeMonth = (offset) => {
+                const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1);
+                setCurrentMonth(newDate);
+            };
+
+            const renderCalendar = () => {
+                const year = currentMonth.getFullYear();
+                const month = currentMonth.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDayOfWeek = new Date(year, month, 1).getDay(); 
+
+                const blanks = [];
+                for (let i = 0; i < firstDayOfWeek; i++) {
+                    blanks.push(<div key={`blank-${i}`} className="h-10"></div>);
+                }
+
+                const days = [];
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const isSelected = filterDate === dateStr;
+                    const today = new Date();
+                    const isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
+
+                    const hasPersonal = agendas.some(a => a.date === dateStr && !a.isDone);
+                    const hasShared = sharedAgendas.some(a => a.date === dateStr && !a.isDone);
+
+                    days.push(
+                        <div 
+                            key={d} 
+                            onClick={() => handleAgendaClick(dateStr)} 
+                            className={`h-10 rounded-lg flex flex-col items-center justify-center relative cursor-pointer transition-all border 
+                                ${isSelected 
+                                    ? 'bg-gold-primary text-black border-gold-primary shadow-lg scale-110 z-10 font-bold' 
+                                    : 'bg-white/5 border-white/5 text-white hover:bg-white/10 hover:border-white/20'
+                                }`}
+                        >
+                            <span className={`text-[10px] ${isToday && !isSelected ? 'text-cyan-400 font-bold' : ''}`}>{d}</span>
+                            <div className="flex gap-0.5 mt-0.5">
+                                {hasPersonal && <div className="w-1 h-1 rounded-full bg-[#D4AF37] shadow-[0_0_5px_#D4AF37]"></div>}
+                                {hasShared && <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_#10B981]"></div>}
+                            </div>
+                        </div>
+                    );
+                }
+                return [...blanks, ...days];
+            };
+
+            const handleAddAgenda = (e) => {
+                e.preventDefault(); setIsLoading(true);
+                const id = newAgenda.id ? newAgenda.id : null; 
+                const isDone = newAgenda.id ? newAgenda.isDone : false;
+                
+                let targets = [currentUser.username];
+                if (!id && newAgenda.visibility === 'Private' && assignTo.length > 0) {
+                    targets = assignTo;
+                }
+
+                const newItem = { 
+                    id: id, 
+                    title: newAgenda.title, 
+                    desc: newAgenda.desc, 
+                    date: newAgenda.date, 
+                    visibility: newAgenda.visibility, 
+                    isDone: isDone, 
+                    targets: targets 
+                };
+
+                apiCall('saveAgenda', { creatorUsername: currentUser.username, agendaData: newItem })
+                    .then(res => {
+                        setIsLoading(false);
+                        if(res.status === "Sukses") { 
+                            setAgendas(res.agendas); 
+                            if (newItem.visibility === 'Public') {
+                                apiCall('getSharedAgendas').then(setSharedAgendas);
+                            }
+                            alert(newAgenda.id ? "Agenda diperbarui!" : "Agenda berhasil ditugaskan!"); 
+                            setNewAgenda({ title: '', desc: '', date: '', visibility: 'Private' }); 
+                            setAssignTo([]); 
+                            setShowAgendaForm(false); 
+                        } else { alert("Gagal: " + res.message); }
+                    })
+                    .catch(err => { setIsLoading(false); alert("Error: " + err.message); });
+            };
+
+            const handleEditAgenda = (agenda) => {
+                setNewAgenda({ id: agenda.id, title: agenda.title, desc: agenda.desc, date: agenda.date, visibility: agenda.visibility, isDone: agenda.isDone });
+                setShowAgendaForm(true);
+            };
+
+            const handleDeleteAgenda = (agenda) => {
+                if (!confirm("Apakah Anda yakin ingin menghapus agenda ini?")) return;
+                setIsLoading(true);
+                
+                apiCall('deleteAgenda', { id: agenda.id, username: currentUser.username })
+                    .then(res => {
+                        setIsLoading(false);
+                        if (res.status === "Sukses") {
+                            setAgendas(res.agendas);
+                            if (agenda.visibility === 'Public') {
+                                apiCall('getSharedAgendas').then(setSharedAgendas);
+                            }
+                            alert("Agenda berhasil dihapus!");
+                        } else {
+                            alert("Gagal menghapus: " + res.message);
+                        }
+                    })
+                    .catch(err => {
+                        setIsLoading(false); alert("Error: " + err.message);
+                    });
+            };
+
+            const toggleAgenda = (id) => {
+                const targetList = agendaViewMode === 'personal' ? agendas : sharedAgendas;
+                const agenda = targetList.find(a => a.id === id); 
+                if(!agenda) return;
+                if (agenda.username && currentUser && agenda.username !== currentUser.username) return;
+
+                const updatedAgenda = { ...agenda, isDone: !agenda.isDone };
+                if (agendaViewMode === 'personal') { setAgendas(agendas.map(item => item.id === id ? updatedAgenda : item)); } else { setSharedAgendas(sharedAgendas.map(item => item.id === id ? updatedAgenda : item)); }
+
+                apiCall('saveAgenda', { creatorUsername: currentUser.username, agendaData: updatedAgenda })
+                    .then(res => { 
+                        if(res.status === "Sukses") {
+                            setAgendas(res.agendas); 
+                            if (updatedAgenda.visibility === 'Public') {
+                                apiCall('getSharedAgendas').then(setSharedAgendas);
+                            }
+                        }
+                    }).catch(console.error); 
+            };
+
+            const handleAgendaClick = (dateStr) => {
+                const date = new Date(dateStr);
+                if (!isNaN(date)) {
+                    if (date.getMonth() !== currentMonth.getMonth()) { setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1)); }
+                    if (filterDate === dateStr) { setFilterDate(null); } else { setFilterDate(dateStr); }
+                }
+            };
+
+            const openMap = (loc) => {
+                let query = loc;
+                if (loc.includes('|')) query = loc.split('|')[0].trim();
+                else if (loc.includes('GPS:')) { const match = loc.match(/GPS:\s*([0-9.\-,\s]+)/); if (match) query = match[1].trim(); }
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+            };
+
+            const openProfileModal = () => { setEditForm({ ...currentUser }); setIsEditingProfile(false); setIsProfileModalOpen(true); };
+            const handleEditProfileChange = (e) => { const { name, value } = e.target; setEditForm(prev => ({ ...prev, [name]: value })); };
+
+            const handleEditPhotoChange = (e) => {
+                const file = e.target.files[0];
+                if (file) { 
+                    const reader = new FileReader(); 
+                    reader.onloadend = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 400;
+                            
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > MAX_WIDTH) {
+                                height = Math.round((height * MAX_WIDTH) / width);
+                                width = MAX_WIDTH;
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            setEditForm(prev => ({ ...prev, profilePic: canvas.toDataURL('image/jpeg', 0.7) }));
+                        };
+                        img.src = event.target.result;
+                    }; 
+                    reader.readAsDataURL(file); 
+                }
+            };
+
+            const saveProfileChanges = () => {
+                setIsLoading(true);
+                apiCall('updateUserProfile', { username: currentUser.username, newData: editForm })
+                    .then(res => {
+                        setIsLoading(false);
+                        if (res.status === "Sukses") { 
+                            setCurrentUser(res.user); 
+                            setIsEditingProfile(false); 
+                            setIsProfileModalOpen(false); 
+                            alert("Profil berhasil diperbarui!"); 
+                        } else { alert("Gagal update profil: " + res.message); }
+                    })
+                    .catch(err => { setIsLoading(false); alert("Error: " + err.message); });
+            };
+
+            const handleToggleBiometric = () => { const newState = !biometricEnabled; setBiometricEnabled(newState); localStorage.setItem('hnp_biometric_enabled', newState); };
+
+            useEffect(() => { if (currentUser) syncData(); }, [currentUser]);
+            useEffect(() => {
+                if (view === 'attendance') startCamera(); else stopCamera();
+                return () => stopCamera();
+            }, [view]);
+
+            const checkCategoryStatus = (category) => {
+                if (!presences || presences.length === 0) return 'none';
+                const now = new Date();
+                const year = now.getFullYear(); const month = now.getMonth(); const day = now.getDate();
+                const todayTime = new Date(year, month, day).setHours(0,0,0,0);
+                
+                const todaysLogs = presences.filter(p => {
+                    const timestamp = parseDateString(p.date);
+                    if (!timestamp) return false;
+                    return new Date(timestamp).setHours(0,0,0,0) === todayTime;
+                });
+
+                const catLower = category.toLowerCase();
+                const categoryLogs = todaysLogs.filter(l => (l.loc || "").toLowerCase().includes(catLower));
+                
+                const hadirCount = categoryLogs.filter(l => (l.loc || "").includes("| Hadir |")).length;
+                const pulangCount = categoryLogs.filter(l => (l.loc || "").includes("| Pulang |")).length;
+
+                if (hadirCount > pulangCount) return 'hadir'; 
+                
+                if (hadirCount > 0 && hadirCount === pulangCount) {
+                    if (catLower.includes('ekstra') || catLower.includes('khusus')) return 'none'; 
+                    return 'completed';
+                }
+                
+                return 'none';
+            };
+
+            useEffect(() => {
+                if (presences && presences.length > 0) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = now.getMonth();
+                    const day = now.getDate();
+                    const todayTime = new Date(year, month, day).setHours(0,0,0,0);
+
+                    const todaysLogs = presences.filter(p => {
+                        const timestamp = parseDateString(p.date);
+                        if (!timestamp) return false;
+                        const logTime = new Date(timestamp).setHours(0,0,0,0);
+                        return logTime === todayTime;
+                    });
+                    
+                    if (todaysLogs.length > 0) {
+                        const logsText = todaysLogs.map(l => (l.loc || "").toLowerCase());
+                        const categories = ['full time', 'setengah hari', 'khusus', 'ekstra'];
+                        let isActive = false;
+                        let activeCategory = '';
+
+                        for (const cat of categories) {
+                            const catLogs = logsText.filter(t => t.includes(cat));
+                            const hCount = catLogs.filter(t => t.includes('hadir')).length;
+                            const pCount = catLogs.filter(t => t.includes('pulang')).length;
+
+                            if (hCount > pCount) {
+                                isActive = true;
+                                activeCategory = cat;
+                                break;
+                            }
+                        }
+
+                        if (isActive) {
+                            setTodayStatus('hadir');
+                            if(activeCategory === 'full time') setSelectedDuration('Full Time');
+                            else if(activeCategory === 'setengah hari') setSelectedDuration('Setengah Hari');
+                            else if(activeCategory === 'khusus') setSelectedDuration('Khusus');
+                            else if(activeCategory === 'ekstra') setSelectedDuration('Ekstra');
+                            
+                            const hadirLogEntry = todaysLogs.find(l => (l.loc || "").toLowerCase().includes('hadir') && (l.loc || "").toLowerCase().includes(activeCategory));
+                            if (hadirLogEntry) {
+                                const shiftMatch = (hadirLogEntry.loc || "").match(/\[Shift:\s*(.+?)\s*\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)\]/i);
+                                if (shiftMatch) {
+                                    const detectedShift = `${shiftMatch[1].toUpperCase()} (${shiftMatch[2]} - ${shiftMatch[3]})`;
+                                    setSelectedShift(prev => prev || detectedShift);
+                                }
+                            }
+                        } else {
+                            setTodayStatus('completed');
+                        }
+                    } else { setTodayStatus('none'); }
+                } else { setTodayStatus('none'); }
+            }, [presences]);
+
+            useEffect(() => {
+                let watchId = null;
+                if (view === 'attendance') {
+                    if (navigator.geolocation) {
+                        watchId = navigator.geolocation.watchPosition(
+                            (pos) => {
+                                setLocationErrorMsg(null);
+                                const lat = pos.coords.latitude; const lng = pos.coords.longitude; const acc = pos.coords.accuracy;
+                                setCoords({ lat, lng, accuracy: acc });
+                                const dist = getDistance(lat, lng, adminSettings.targetLat, adminSettings.targetLng);
+                                setDistanceToTarget(dist);
+                                if (markerUserRef.current) { markerUserRef.current.setLatLng([lat, lng]); markerUserRef.current.setPopupContent(`Akurasi GPS: ${Math.round(acc)}m`); }
+                            },
+                            (err) => {
+                                console.warn("GPS Error:", err);
+                                let msg = "Gagal deteksi lokasi.";
+                                if (err.code === 1) msg = "Izin lokasi ditolak. Cek pengaturan browser/HP.";
+                                else if (err.code === 2) msg = "Posisi tidak tersedia. Cek GPS/Sinyal.";
+                                else if (err.code === 3) msg = "Waktu habis (Timeout). Sinyal lemah.";
+                                setCoords({ lat: 'Err', lng: 'Err', accuracy: null });
+                                setLocationErrorMsg(msg);
+                            },
+                            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 } 
+                        );
+                    }
+                }
+                return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
+            }, [view, presenceType, adminSettings]);
+
+            const handleRefreshGPS = () => {
+                setIsLoading(true);
+                setLocationErrorMsg(null);
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            setIsLoading(false);
+                            const lat = pos.coords.latitude; const lng = pos.coords.longitude; const acc = pos.coords.accuracy;
+                            setCoords({ lat, lng, accuracy: acc });
+                            const dist = getDistance(lat, lng, adminSettings.targetLat, adminSettings.targetLng);
+                            setDistanceToTarget(dist);
+                            alert("Lokasi diperbarui!");
+                        },
+                        (err) => {
+                            setIsLoading(false);
+                            let msg = "Gagal refresh lokasi.";
+                            if (err.code === 1) msg = "Izin ditolak. Mohon izinkan akses lokasi.";
+                            else if (err.code === 2) msg = "GPS tidak tersedia.";
+                            else if (err.code === 3) msg = "Timeout. Coba lagi di area terbuka.";
+                            alert(msg);
+                            setLocationErrorMsg(msg);
+                        },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                    );
+                } else {
+                    setIsLoading(false);
+                    alert("Browser tidak mendukung Geolocation.");
+                }
+            };
+
+            useEffect(() => {
+                if (view === 'attendance') {
+                    const initMap = () => {
+                        const container = document.getElementById('user-map');
+                        if (!container || mapUserRef.current) return;
+                        if (container._leaflet_id) container._leaflet_id = null;
+                        try {
+                            const map = L.map('user-map', { zoomControl: false }).setView([adminSettings.targetLat, adminSettings.targetLng], 16);
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                            L.marker([adminSettings.targetLat, adminSettings.targetLng]).addTo(map).bindPopup("Kantor/Pusat");
+                            L.circle([adminSettings.targetLat, adminSettings.targetLng], { color: '#FFD700', fillColor: '#FFD700', fillOpacity: 0.1, radius: 500 }).addTo(map);
+                            const userMarker = L.circleMarker([0, 0], { radius: 10, fillColor: "#3b82f6", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1 }).addTo(map).bindPopup("Mencari posisi...");
+                            mapUserRef.current = map; markerUserRef.current = userMarker;
+                        } catch (err) {}
+                    };
+                    const timer = setTimeout(initMap, 200);
+                    return () => { clearTimeout(timer); if (mapUserRef.current) { mapUserRef.current.remove(); mapUserRef.current = null; markerUserRef.current = null; } };
+                }
+            }, [view, presenceType, adminSettings]);
+
+            const syncData = () => { fetchAdminSettings(); loadHistory(); loadAgendas(); loadShifts(); };
+            
+            const fetchAdminSettings = () => { 
+                apiCall('getAdminSettings')
+                    .then(data => { 
+                        if (data && data.targetLat) setAdminSettings({ targetLat: Number(data.targetLat), targetLng: Number(data.targetLng) }); 
+                    }).catch(console.error); 
+            };
+            
+            const loadHistory = () => {
+                setIsHistoryLoading(true);
+                apiCall('getPresensiHistory', { fullName: currentUser.fullName })
+                    .then(history => { setPresences(history || []); setIsHistoryLoading(false); })
+                    .catch(err => { setIsHistoryLoading(false); alert("Gagal history: " + err.message); });
+            };
+
+            const stopCamera = () => { 
+                if (streamRef.current) { 
+                    streamRef.current.getTracks().forEach(track => track.stop()); 
+                    streamRef.current = null; 
+                }
+                if (videoRef.current) { videoRef.current.srcObject = null; }
+            };
+
+            const startCamera = async () => { 
+                stopCamera();
+                setCameraFailed(false);
+                setFallbackImage(null);
+                setCameraErrorMsg(null);
+                setIsRequestingCamera(true);
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setIsRequestingCamera(false);
+                    setCameraFailed(true);
+                    setCameraErrorMsg("Browser Anda tidak mendukung Live Camera. Silahkan gunakan kamera bawaan.");
+                    return;
+                }
+
+                const attachStream = (stream) => {
+                    setIsRequestingCamera(false);
+                    streamRef.current = stream; 
+                    const tryPlay = setInterval(() => {
+                        if (videoRef.current) {
+                            clearInterval(tryPlay);
+                            videoRef.current.srcObject = stream;
+                            videoRef.current.play().catch(e => console.error("Play error:", e));
+                        }
+                    }, 100);
+                    setTimeout(() => clearInterval(tryPlay), 3000);
+                };
+
+                try { 
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); 
+                    attachStream(stream);
+                } catch (err1) { 
+                    try {
+                        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        attachStream(fallbackStream);
+                    } catch (err2) {
+                        setIsRequestingCamera(false); 
+                        setCameraFailed(true);
+                        console.error("Camera Error:", err2);
+                        if (err2.name === 'NotAllowedError' || err2.name === 'PermissionDeniedError') setCameraErrorMsg("Browser memblokir kamera. Ubah izin Kamera menjadi 'Allow/Izinkan'.");
+                        else if (err2.name === 'NotFoundError' || err2.name === 'DevicesNotFoundError') setCameraErrorMsg("Kamera tidak terdeteksi.");
+                        else if (err2.name === 'NotReadableError' || err2.name === 'TrackStartError') setCameraErrorMsg("Kamera sedang digunakan aplikasi lain.");
+                        else setCameraErrorMsg("Sistem kamera bermasalah: " + err2.message);
+                    }
+                } 
+            };
+
+            const handleNativeCamera = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 800; 
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > MAX_WIDTH) {
+                                height = Math.round((height * MAX_WIDTH) / width);
+                                width = MAX_WIDTH;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                            setFallbackImage(compressedDataUrl);
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            
+            const handleFileChange = (e) => { 
+                const file = e.target.files[0]; 
+                if (file) { 
+                    const reader = new FileReader(); 
+                    reader.onloadend = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 400; 
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > MAX_WIDTH) {
+                                height = Math.round((height * MAX_WIDTH) / width);
+                                width = MAX_WIDTH;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            setRegForm({ ...regForm, profilePic: canvas.toDataURL('image/jpeg', 0.7) });
+                        };
+                        img.src = event.target.result;
+                    }; 
+                    reader.readAsDataURL(file); 
+                } 
+            };
+            
+            const handleLogin = (e) => { 
+                e.preventDefault(); setIsLoading(true); 
+                apiCall('loginUser', { username: loginForm.user, password: loginForm.pass })
+                    .then(res => { 
+                        setIsLoading(false); 
+                        if (res && res.status === "Sukses") { 
+                            localStorage.setItem('hnp_user_session', JSON.stringify(res.user));
+                            setCurrentUser(res.user); setView('dashboard'); 
+                        } else alert("Login Gagal: " + (res.status||"Unknown")); 
+                    })
+                    .catch(err => { setIsLoading(false); alert("Error: " + err.message); }); 
+            };
+
+            const handleBiometricLogin = () => {
+                const savedSession = localStorage.getItem('hnp_user_session');
+                if (!savedSession) { 
+                    return alert("Data biometrik belum tersedia. Login manual sekali untuk mengaktifkan."); 
+                }
+                
+                const localUser = JSON.parse(savedSession);
+                setIsBiometricActive(true);
+
+                apiCall('checkUserStatus', { username: localUser.username })
+                    .then(serverUser => {
+                        if (serverUser && serverUser.username === localUser.username) {
+                            setTimeout(() => {
+                                localStorage.setItem('hnp_user_session', JSON.stringify(serverUser));
+                                setCurrentUser(serverUser); 
+                                setView('dashboard'); 
+                                setIsBiometricActive(false);
+                            }, 2000);
+                        } else {
+                            handleAccountDeleted();
+                        }
+                    })
+                    .catch(err => {
+                        setIsBiometricActive(false);
+                        alert("Gagal verifikasi server: " + err.message);
+                    }); 
+            };
+
+            const handleAccountDeleted = () => {
+                 setIsBiometricActive(false);
+                 localStorage.removeItem('hnp_user_session');
+                 localStorage.removeItem('hnp_biometric_enabled');
+                 setBiometricEnabled(false);
+                 setCurrentUser(null);
+                 alert("AKSES DITOLAK: Akun anda tidak ditemukan atau telah dihapus oleh Admin.");
+                 setView('login');
+            };
+
+            const handleRegister = (e) => { 
+                e.preventDefault(); 
+                if (!regForm.profilePic) return alert("Upload foto profil!"); 
+                setIsLoading(true); 
+                apiCall('registerUser', { payload: regForm })
+                    .then(res => { 
+                        setIsLoading(false); 
+                        if(res === "Sukses") { alert("Pendaftaran Berhasil! Tunggu verifikasi admin."); setView('login'); } 
+                        else alert(res); 
+                    })
+                    .catch(err => { setIsLoading(false); alert("Error: " + err.message); });
+            };
+
+            const isLocationMissing = coords.lat === null || coords.lng === null || coords.lat === 'Err';
+
+            const doAbsen = () => {
+                if (isLocationMissing) return alert("Lokasi belum ditemukan! Tunggu hingga koordinat muncul. Pastikan GPS aktif.");
+                
+                const isSpecialCategory = selectedDuration === 'Khusus' || selectedDuration === 'Ekstra';
+
+                if (presenceType !== 'Izin' && !isSpecialCategory) { 
+                    if (coords.accuracy > 100) return alert(`Akurasi GPS buruk (${Math.round(coords.accuracy)}m). Tunggu stabil.`);
+                    if (distanceToTarget > 0.5 && !currentUser?.bypassGeo) {
+                         return alert(`Jarak kejauhan: ${distanceToTarget.toFixed(2)} KM.`);
+                    }
+                }
+
+                const isDescriptionRequired = presenceType === 'Izin' || (presenceType === 'Hadir' && (selectedDuration === 'Khusus' || selectedDuration === 'Ekstra'));
+
+                if (isDescriptionRequired && (!permitReason || permitReason.trim() === '')) {
+                      return alert("Isi keterangan/deskripsi aktivitas!");
+                }
+              
+                setIsLoading(true);
+                
+                let dataUrl = "";
+                if (fallbackImage) {
+                    dataUrl = fallbackImage; 
+                } else if (videoRef.current && !cameraFailed) {
+                    const canvas = canvasRef.current; 
+                    const ctx = canvas.getContext('2d'); 
+                    canvas.width = 640; canvas.height = 480; 
+                    ctx.translate(640, 0); ctx.scale(-1, 1); 
+                    ctx.drawImage(videoRef.current, 0, 0, 640, 480); 
+                    dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                } else {
+                    alert("Foto belum diambil! Pastikan kamera aktif atau ambil foto secara manual.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                let locStr = "";
+                if (presenceType === 'Izin') {
+                      locStr = `[IZIN] ${permitReason} (GPS: ${coords.lat}, ${coords.lng})`;
+                } else {
+                    let cat = selectedDuration || 'Full Time';
+                    if (selectedShift) { cat += ` [Shift: ${selectedShift}]`; }
+                    locStr = `${coords.lat}, ${coords.lng} | ${presenceType} | ${cat}`;
+                    if (distanceToTarget > 0.5 && currentUser?.bypassGeo) { locStr += " [BYPASS RADIUS]"; }
+                    if (cat === 'Khusus' || cat === 'Ekstra') {
+                         if(permitReason && permitReason.trim() !== '') locStr += ` (${permitReason})`;
+                    }
+                }
+
+                apiCall('submitPresensi', { userData: currentUser, location: locStr, base64Image: dataUrl, type: presenceType })
+                    .then(res => {
+                        setIsLoading(false); setPresences([res, ...presences]); alert("Presensi Berhasil!"); resetToDashboard();
+                    })
+                    .catch(err => {
+                        setIsLoading(false); alert("Gagal: " + err.message); 
+                    }); 
+            };
+
+            const resetToDashboard = () => { 
+                setView('dashboard'); 
+                setSelectionStage('type'); 
+                setPermitReason(''); 
+                setSelectedShift(''); 
+                setIsShiftModalOpen(false);
+            };
+            
+            const isOutOfRange = (
+                presenceType !== 'Izin' && 
+                selectedDuration !== 'Khusus' && 
+                selectedDuration !== 'Ekstra' && 
+                distanceToTarget > 0.5 &&
+                !currentUser?.bypassGeo 
+            );
+            
+            const isGpsPoor = (
+                 presenceType !== 'Izin' && 
+                 selectedDuration !== 'Khusus' && 
+                 selectedDuration !== 'Ekstra' && 
+                 coords.accuracy !== null && 
+                 coords.accuracy > 100
+            );
+
+            const handleDurationSelect = (duration) => {
+                setSelectedDuration(duration);
+                if ((duration === 'Full Time' || duration === 'Setengah Hari')) {
+                    const relevantShifts = shiftList.filter(shift => {
+                        if (!shift.roles) return true; 
+                        const allowedRoles = shift.roles.split(',').map(r => r.trim().toLowerCase());
+                        const userPos = (currentUser?.position || "").toLowerCase();
+                        return allowedRoles.includes(userPos);
+                    });
+
+                    if (relevantShifts.length > 0) {
+                        setSelectedShift('');
+                        setIsShiftModalOpen(true);
+                    } else {
+                        setSelectedShift('');
+                        setSelectionStage('action');
+                    }
+                } else {
+                    setSelectedShift('');
+                    setSelectionStage('action');
+                }
+            };
+            
+            const renderShiftModal = () => {
+                if (!isShiftModalOpen) return null;
+                
+                const filteredShifts = shiftList.filter(shift => {
+                    if (!shift.roles) return true; 
+                    const allowedRoles = shift.roles.split(',').map(r => r.trim().toLowerCase());
+                    const userPos = (currentUser?.position || "").toLowerCase();
+                    return allowedRoles.includes(userPos);
+                });
+                
+                return (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in rounded-[2rem]">
+                        <div className="w-full max-w-sm">
+                            <h3 className="text-white font-black text-xl mb-2 text-center uppercase tracking-[0.2em]">Pilih Shift Kerja</h3>
+                            <p className="text-gold-light text-xs font-bold text-center uppercase tracking-widest mb-8">Shift Khusus {currentUser?.position}</p>
+                            
+                            <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                {filteredShifts.length === 0 ? (
+                                    <div className="text-center py-4">
+                                        <p className="text-slate-500 text-xs">Tidak ada shift yang tersedia.</p>
+                                    </div>
+                                ) : (
+                                    filteredShifts.map((shift, idx) => (
+                                        <button 
+                                            key={shift.id || idx}
+                                            onClick={() => {
+                                                const inTime = cleanTime(shift.in);
+                                                const outTime = cleanTime(shift.out);
+                                                const formattedShift = `${shift.name} (${inTime} - ${outTime})`;
+                                                setSelectedShift(formattedShift);
+                                                setIsShiftModalOpen(false);
+                                                setSelectionStage('action');
+                                            }}
+                                            className="w-full p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-gold-primary hover:text-black hover:border-gold-primary hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all group flex flex-col items-start gap-1"
+                                        >
+                                            <div className="flex justify-between w-full items-center">
+                                                <span className="font-bold text-sm uppercase tracking-wide">{shift.name}</span>
+                                                <i className="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-opacity text-xs"></i>
+                                            </div>
+                                            <span className="text-[10px] font-mono opacity-70 group-hover:opacity-100">{cleanTime(shift.in)} - {cleanTime(shift.out)}</span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                            
+                            <button 
+                                onClick={() => setIsShiftModalOpen(false)}
+                                className="mt-6 w-full py-3 text-xs font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+                            >
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderActionButtons = () => {
+                let keyword = selectedDuration; 
+                if (keyword === 'Izin') return null; 
+
+                const status = checkCategoryStatus(keyword); 
+
+                if (status === 'completed') {
+                    return (
+                          <div className="text-center animate-in">
+                            <div className="w-24 h-24 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-6 text-4xl shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                                <i className="fas fa-check-double"></i>
+                            </div>
+                            <h3 className="text-white font-black text-xl mb-2 uppercase tracking-[0.2em]">Selesai</h3>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-10">Anda sudah menyelesaikan presensi {keyword} hari ini.</p>
+                            <button onClick={() => setSelectionStage('type')} className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-widest">Kembali</button>
+                        </div>
+                    );
+                }
+
+                if (status === 'hadir') {
+                    return (
+                        <div className="animate-in relative z-10 text-center">
+                            <button onClick={() => setSelectionStage('type')} className="text-[10px] text-slate-500 mb-8 font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto hover:text-white transition-colors"><i className="fas fa-arrow-left"></i> KEMBALI</button>
+                            <h3 className="text-white font-black text-2xl mb-2 uppercase tracking-[0.2em]">{keyword}</h3>
+                            {selectedShift && <p className="text-gold-light text-[10px] font-black uppercase tracking-widest mb-1">{selectedShift}</p>}
+                            <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-10">Status: Sedang Bertugas</p>
+                            
+                            <button onClick={() => { setPresenceType('Pulang'); setView('attendance'); }} className="selection-card p-10 rounded-3xl bg-rose-900/10 flex flex-col items-center gap-5 group border border-rose-500/20 active:scale-95 shadow-xl max-w-xs mx-auto w-full hover:bg-rose-900/20">
+                                <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-400 text-4xl group-hover:bg-rose-500 group-hover:text-white transition-all"><i className="fas fa-sign-out-alt"></i></div>
+                                <span className="font-black text-sm text-rose-100 uppercase tracking-widest">PULANG</span>
+                            </button>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="animate-in relative z-10 text-center">
+                        <button onClick={() => setSelectionStage('type')} className="text-[10px] text-slate-500 mb-8 font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto hover:text-white transition-colors"><i className="fas fa-arrow-left"></i> KEMBALI</button>
+                        <h3 className="text-white font-black text-2xl mb-2 uppercase tracking-[0.2em]">{keyword}</h3>
+                        {selectedShift && <div className="bg-gold-primary/10 border border-gold-primary/20 inline-block px-3 py-1 rounded-lg mb-8"><p className="text-gold-light text-[10px] font-black uppercase tracking-widest">{selectedShift}</p></div>}
+                        
+                        <div className={`grid grid-cols-1 gap-8 max-w-xs mx-auto ${!selectedShift ? 'mt-8' : ''}`}>
+                            <button onClick={() => { setPresenceType('Hadir'); setView('attendance'); }} className="selection-card p-10 rounded-3xl bg-emerald-900/10 flex flex-col items-center gap-5 group border border-emerald-500/20 active:scale-95 shadow-xl hover:bg-emerald-900/20">
+                                <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-4xl group-hover:bg-emerald-500 group-hover:text-white transition-all"><i className="fas fa-sign-in-alt"></i></div>
+                                <span className="font-black text-sm text-emerald-100 uppercase tracking-widest">DATANG</span>
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderPresenceButtons = () => {
+                if (selectionStage === 'action') {
+                    return (
+                        <div className="os-window p-8 rounded-[2rem] min-h-[400px] flex flex-col justify-center text-center relative border border-white/5">
+                            {renderActionButtons()}
+                        </div>
+                    );
+                }
+
+                if (todayStatus === 'completed') {
+                    return (
+                          <div className="os-window p-8 rounded-[2rem] min-h-[400px] flex flex-col justify-center text-center relative border border-white/5 animate-in">
+                            <div className="w-24 h-24 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-6 text-4xl shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                                <i className="fas fa-check-double"></i>
+                            </div>
+                            <h3 className="text-white font-black text-xl mb-2 uppercase tracking-[0.2em]">Presensi Selesai</h3>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-10">Anda sudah menyelesaikan presensi {selectedDuration || 'hari ini'}.</p>
+                            
+                            <button onClick={() => handleDurationSelect('Ekstra')} className="selection-card p-4 rounded-2xl bg-orange-900/10 flex items-center justify-center gap-3 border border-orange-500/20 hover:bg-orange-600/10 transition-all shadow-xl max-w-xs mx-auto w-full group">
+                                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:text-white group-hover:bg-orange-500 transition-all"><i className="fas fa-plus"></i></div>
+                                <span className="font-black text-[10px] text-orange-100 uppercase tracking-widest">Tambah Tugas (Ekstra)</span>
+                            </button>
+                        </div>
+                    );
+                }
+                
+                if (todayStatus === 'hadir') {
+                      return (
+                        <div className="os-window p-8 rounded-[2rem] min-h-[400px] flex flex-col justify-center text-center relative border border-white/5 animate-in">
+                            <h3 className="text-white font-black text-xl mb-1 uppercase tracking-[0.3em]">Status: <span className="text-emerald-400">Telah Datang</span></h3>
+                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 italic opacity-80">Selesaikan presensi kepulangan Anda</p>
+                             <button onClick={() => { setPresenceType('Pulang'); setView('attendance'); }} className="selection-card p-10 rounded-3xl bg-rose-900/10 flex flex-col items-center gap-5 group border border-rose-500/20 active:scale-95 shadow-xl max-w-xs mx-auto w-full">
+                                <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-400 text-4xl group-hover:bg-rose-500 group-hover:text-white transition-all"><i className="fas fa-sign-out-alt"></i></div>
+                                <span className="font-black text-sm text-rose-100 uppercase tracking-widest">ABSEN PULANG</span>
+                            </button>
+                            
+                             <button onClick={() => handleDurationSelect('Ekstra')} className="mt-6 selection-card p-4 rounded-2xl bg-orange-900/10 flex items-center justify-center gap-3 border border-orange-500/20 hover:bg-orange-600/10 transition-all shadow-xl max-w-xs mx-auto w-full group">
+                                <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:text-white group-hover:bg-orange-500 transition-all"><i className="fas fa-plus text-xs"></i></div>
+                                <span className="font-black text-[9px] text-orange-100 uppercase tracking-widest">Tugas Tambahan</span>
+                            </button>
+                        </div>
+                    );
+                }
+                return (
+                    <div className="os-window p-8 rounded-[2rem] min-h-[400px] flex flex-col justify-center text-center relative border border-white/5">
+                        {renderShiftModal()}
+                        <div className="animate-in relative z-10">
+                            <h3 className="text-white font-black text-xl mb-1 uppercase tracking-[0.3em]">Selamat Datang</h3>
+                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 italic opacity-80">Silahkan pilih kategori presensi kerja</p>
+                            <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+                                <button onClick={() => handleDurationSelect('Full Time')} className="selection-card p-6 rounded-3xl bg-blue-900/10 flex flex-col items-center gap-3 border border-blue-500/10 hover:bg-blue-600/10 transition-all shadow-xl">
+                                    <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400"><i className="fas fa-sun text-2xl"></i></div>
+                                    <span className="font-black text-[10px] text-blue-100 uppercase tracking-widest">FULL DAY</span>
+                                </button>
+                                <button onClick={() => handleDurationSelect('Setengah Hari')} className="selection-card p-6 rounded-3xl bg-amber-900/10 flex flex-col items-center gap-3 border border-amber-500/10 hover:bg-amber-600/10 transition-all shadow-xl">
+                                    <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400"><i className="fas fa-cloud-sun text-2xl"></i></div>
+                                    <span className="font-black text-[10px] text-amber-100 uppercase tracking-widest">HALF DAY</span>
+                                </button>
+                                <button onClick={() => { setSelectedDuration('Izin'); setPresenceType('Izin'); setView('attendance'); }} className="selection-card p-6 rounded-3xl bg-purple-900/10 flex flex-col items-center gap-3 border border-purple-500/10 hover:bg-purple-600/10 transition-all shadow-xl">
+                                    <div className="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400"><i className="fas fa-notes-medical text-2xl"></i></div>
+                                    <span className="font-black text-[10px] text-purple-100 uppercase tracking-widest">IZIN</span>
+                                </button>
+                                <button onClick={() => handleDurationSelect('Khusus')} className="selection-card p-6 rounded-3xl bg-cyan-900/10 flex flex-col items-center gap-3 border border-cyan-500/10 hover:bg-cyan-600/10 transition-all shadow-xl">
+                                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-cyan-400"><i className="fas fa-star text-2xl"></i></div>
+                                    <span className="font-black text-[10px] text-cyan-100 uppercase tracking-widest">KHUSUS</span>
+                                </button>
+                                
+                                <button onClick={() => handleDurationSelect('Ekstra')} className="selection-card p-6 rounded-3xl bg-orange-900/10 flex flex-col items-center gap-3 border border-orange-500/10 hover:bg-orange-600/10 transition-all shadow-xl col-span-2">
+                                    <div className="w-14 h-14 rounded-2xl bg-orange-500/20 flex items-center justify-center text-orange-400"><i className="fas fa-briefcase text-2xl"></i></div>
+                                    <span className="font-black text-[10px] text-orange-100 uppercase tracking-widest">TUGAS TAMBAHAN (EKSTRA)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const LoadingScreen = () => (
+                <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md transition-all">
+                      <div className="relative mb-6">
+                        <div className="w-20 h-20 border-4 border-white/5 border-t-[#FFD700] rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                             <img src={logoUrl} className="w-8 opacity-80 animate-pulse" />
+                        </div>
+                      </div>
+                      <h2 className="text-white font-black text-xl uppercase tracking-[0.2em] animate-pulse">Memproses Data</h2>
+                      <p className="text-gold-light text-xs mt-2 font-mono">Mohon Tunggu Sebentar...</p>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen flex flex-col justify-center items-center p-4">
+                    {isLoading && <LoadingScreen />}
+
+                    {/* --- BIOMETRIC SCANNER OVERLAY --- */}
+                    {isBiometricActive && (
+                        <div className="biometric-scanner-overlay animate-in">
+                            <div className="flex flex-col items-center">
+                                <div className="relative mb-8">
+                                    {biometricType === 'face' ? (
+                                        <div className="face-id-frame">
+                                            <i className="fas fa-user text-6xl text-white opacity-20"></i>
+                                            <div className="face-id-scanner"></div>
+                                        </div>
+                                    ) : (
+                                        <div className="bio-icon-container">
+                                            <i className="fas fa-fingerprint fingerprint-icon"></i>
+                                            <div className="fingerprint-active">
+                                                <i className="fas fa-fingerprint"></i>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <h3 className="text-white font-black text-xl uppercase tracking-[0.2em] mb-2 animate-pulse">
+                                    {biometricType === 'face' ? 'Memindai Wajah' : 'Memindai Sidik Jari'}
+                                </h3>
+                                <p className="text-gold-light text-[10px] font-bold uppercase tracking-[0.4em] opacity-80">
+                                    Verifikasi Identitas...
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {view === 'login' && (
+                        <div className="os-window p-8 md:p-12 rounded-[2.5rem] w-full max-w-sm md:max-w-md animate-in text-center relative overflow-hidden border border-white/10 shadow-2xl">
+                             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#FFD700] to-transparent opacity-100 shadow-[0_0_20px_#FFD700]"></div>
+                            <div className="mb-8"><img src={logoUrl} alt="Logo" className="w-24 mx-auto logo-hologram transform scale-[2.5]" /></div>
+                            <h2 className="text-2xl font-black mb-1 uppercase text-white tracking-tight"><span className="text-gold-gradient">PRESENSI</span> PEGAWAI</h2>
+                            <p className="text-blue-300 text-[10px] mb-10 font-bold tracking-[0.5em] uppercase opacity-70">HNP WEDDING ORGANIZER</p>
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                <div className="relative"><i className="fas fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i><input type="text" placeholder="Username" className="w-full pl-12 pr-5 py-4 os-input rounded-2xl text-sm" onChange={e => setLoginForm({...loginForm, user: e.target.value})} required /></div>
+                                
+                                <div className="relative">
+                                    <i className="fas fa-key absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                    <input 
+                                        type={showPassword ? "text" : "password"} 
+                                        placeholder="Password" 
+                                        className="w-full pl-12 pr-12 py-4 os-input rounded-2xl text-sm" 
+                                        onChange={e => setLoginForm({...loginForm, pass: e.target.value})} 
+                                        required 
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors outline-none"
+                                        title={showPassword ? "Sembunyikan Password" : "Tampilkan Password"}
+                                    >
+                                        <i className={`fas fa-${showPassword ? 'eye-slash' : 'eye'}`}></i>
+                                    </button>
+                                </div>
+
+                                <button className="w-full btn-gold py-4 rounded-2xl text-xs font-black tracking-widest uppercase shadow-xl">{isLoading ? "AUTHENTICATING..." : "AUTHENTICATE"}</button>
+                            </form>
+                            
+                            {biometricEnabled && (
+                                <div className="mt-6 pt-6 border-t border-white/10 animate-in">
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-4">Atau Masuk Dengan</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button type="button" onClick={() => { setBiometricType('face'); handleBiometricLogin(); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold-light/30 transition-all flex flex-col items-center gap-2 group">
+                                            <i className="fas fa-expand text-xl text-slate-400 group-hover:text-gold-light transition-colors"></i>
+                                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-wider">Face ID</span>
+                                        </button>
+                                        <button type="button" onClick={() => { setBiometricType('finger'); handleBiometricLogin(); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold-light/30 transition-all flex flex-col items-center gap-2 group">
+                                            <i className="fas fa-fingerprint text-xl text-slate-400 group-hover:text-gold-light transition-colors"></i>
+                                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-wider">Sidik Jari</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="mt-6 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Belum punya akses? <button onClick={() => setView('register')} className="text-[#FFD700] underline">Daftar Sekarang</button></p>
+                        </div>
+                    )}
+
+                    {view === 'register' && (
+                        <div className="os-window p-8 rounded-[2.5rem] w-full max-w-lg animate-in border border-white/10 shadow-2xl">
+                            <h2 className="text-2xl font-black mb-6 text-center text-white uppercase tracking-tight"><span className="text-blue-400">Registrasi</span> Pegawai</h2>
+                            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2 flex flex-col items-center gap-2 mb-4">
+                                    <div className="w-24 h-24 rounded-full border-2 border-dashed border-blue-500/50 flex items-center justify-center overflow-hidden bg-black/40 relative cursor-pointer group shadow-inner">
+                                            {regForm.profilePic ? <img src={regForm.profilePic} className="w-full h-full object-cover" /> : <i className="fas fa-camera text-blue-500/30 text-2xl group-hover:scale-110 transition-transform"></i>}
+                                            <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" title="Upload Photo" />
+                                    </div>
+                                    <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Upload Profile Photo</p>
+                                </div>
+                                <input placeholder="Nama Lengkap" className="md:col-span-2 p-4 os-input rounded-xl text-xs" onChange={e => setRegForm({...regForm, fullName: e.target.value})} required />
+                                <input placeholder="Nama Panggilan" className="p-4 os-input rounded-xl text-xs" onChange={e => setRegForm({...regForm, nickname: e.target.value})} required />
+                                <select className="p-4 os-input rounded-xl text-xs outline-none" onChange={e => setRegForm({...regForm, position: e.target.value})} required>
+                                    <option value="">Pilih Jabatan</option>{jabatanOptions.map(j => <option key={j} value={j} className="text-black">{j}</option>)}
+                                </select>
+                                <input placeholder="NIK" className="p-4 os-input rounded-xl text-xs" onChange={e => setRegForm({...regForm, nik: e.target.value})} required />
+                                <input placeholder="username akun" className="p-4 os-input rounded-xl text-xs" onChange={e => setRegForm({...regForm, user: e.target.value})} required />
+                                <div className="relative md:col-span-2">
+                                    <input 
+                                        type={showRegPassword ? "text" : "password"} 
+                                        placeholder="Password" 
+                                        className="w-full p-4 pr-12 os-input rounded-xl text-xs" 
+                                        onChange={e => setRegForm({...regForm, pass: e.target.value})} 
+                                        required 
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowRegPassword(!showRegPassword)}
+                                        className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors outline-none"
+                                        title={showRegPassword ? "Sembunyikan Password" : "Tampilkan Password"}
+                                    >
+                                        <i className={`fas fa-${showRegPassword ? 'eye-slash' : 'eye'}`}></i>
+                                    </button>
+                                </div>
+                                <button className="md:col-span-2 btn-gold py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl">Kirim Registrasi</button>
+                                <button type="button" onClick={() => setView('login')} className="md:col-span-2 text-center text-[10px] text-slate-500 font-bold uppercase mt-2 hover:text-white transition-colors">Batal</button>
+                            </form>
+                        </div>
+                    )}
+
+                    {view === 'dashboard' && currentUser && (
+                        <div className="w-full max-w-6xl animate-in flex flex-col gap-6 h-full pb-10">
+                            <div className="os-window p-4 md:p-6 rounded-[2rem] flex justify-between items-center shadow-lg border border-white/5 relative">
+                                <div className="flex items-center gap-4 cursor-pointer group" onClick={openProfileModal} title="Klik untuk Edit Profil">
+                                    <div className="relative">
+                                         <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl border-2 border-gold-light/20 overflow-hidden shrink-0 bg-black group-hover:border-gold-light transition-all shadow-xl">
+                                             <img src={currentUser.profilePic} className="w-full h-full object-cover" alt="Avatar" />
+                                         </div>
+                                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gold-primary rounded-full flex items-center justify-center text-black text-[8px] border border-black shadow-sm group-hover:scale-110 transition-transform">
+                                             <i className="fas fa-pen"></i>
+                                         </div>
+                                    </div>
+                                    <div className="min-w-0 pr-4">
+                                            <h2 className="font-extrabold text-white text-base md:text-lg group-hover:text-gold-light transition-colors truncate">{currentUser.fullName}</h2>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] truncate">{currentUser.position}</p>
+                                            </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 md:gap-4">
+                                    <div className="flex flex-col items-center mr-3 md:border-l md:border-white/10 pl-2 md:pl-4">
+                                            <img src={logoUrl} alt="Logo" className="h-9 w-auto logo-hologram transform scale-[2.5]" />
+                                            <span className="hidden md:block text-[7px] text-gold-light/60 font-black uppercase mt-1 tracking-[0.2em]">HNP OFFICIAL</span>
+                                    </div>
+                                    <button onClick={syncData} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gold-primary/10 text-gold-light border border-gold-primary/20 flex items-center justify-center hover:bg-gold-primary hover:text-black transition-all shadow-lg active:scale-90"><i className={`fas fa-sync ${isHistoryLoading ? 'animate-spin' : ''}`}></i></button>
+                                    <button onClick={() => setView('login')} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-lg active:scale-90"><i className="fas fa-power-off"></i></button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-center gap-4">
+                                <button onClick={() => setDashTab('presence')} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg ${dashTab === 'presence' ? 'bg-gold-primary text-black scale-105' : 'bg-white/10 text-slate-400 hover:bg-white/20'}`}><i className="fas fa-fingerprint mr-2"></i> Dashboard Presensi</button>
+                                <button onClick={() => setDashTab('agenda')} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg ${dashTab === 'agenda' ? 'bg-blue-600 text-white scale-105' : 'bg-white/10 text-slate-400 hover:bg-white/20'}`}><i className="fas fa-list-check mr-2"></i> Dashboard Agenda</button>
+                            </div>
+
+                            {dashTab === 'presence' ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in">
+                                    <div className="lg:col-span-7">
+                                        {renderPresenceButtons()}
+                                    </div>
+
+                                    <div className="lg:col-span-5 flex flex-col gap-4">
+                                            <div className="os-window flex-1 p-6 rounded-[2rem] flex flex-col min-h-[400px] border border-white/5">
+                                                
+                                            <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-4 animate-in">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest"><i className="fas fa-filter mr-1"></i> Filter Spesifik</p>
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <input type="text" list="day-list" value={filterDay} onChange={(e) => setFilterDay(e.target.value)} placeholder="Tgl" className="col-span-1 p-2 os-input rounded-lg text-[10px] font-bold outline-none w-full text-center" /><datalist id="day-list">{days.map(d => <option key={d} value={d} />)}</datalist>
+                                                    <input type="text" list="month-list" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} placeholder="Bulan" className="col-span-1 p-2 os-input rounded-lg text-[10px] font-bold outline-none w-full text-center" /><datalist id="month-list">{monthsNames.map((m, i) => <option key={i} value={m} />)}</datalist>
+                                                    <input type="text" list="year-list" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} placeholder="Thn" className="col-span-1 p-2 os-input rounded-lg text-[10px] font-bold outline-none w-full text-center" /><datalist id="year-list">{years.map(y => <option key={y} value={y} />)}</datalist>
+                                                    <button onClick={resetDateFilters} className="col-span-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"><i className="fas fa-undo"></i> Reset</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center justify-between mb-4 border-b border-white/5 pb-3 gap-2">
+                                                <div className="flex items-center gap-3"><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Log Activity</p><button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="px-3 py-1 rounded bg-white/5 flex items-center justify-center gap-2 text-[9px] text-gold-light hover:bg-white/10 transition-colors border border-white/5"><span className="font-bold uppercase tracking-wider">{sortOrder === 'desc' ? 'Terbaru' : 'Terlama'}</span><i className={`fas fa-sort-amount-${sortOrder === 'desc' ? 'down' : 'up'}`}></i></button></div>
+                                                
+                                                {/* PILL FILTERS - ONLY SHOW WHEN NOT IN MONTH MODE */}
+                                                {logViewMode !== 'months' && (
+                                                    <div className="flex gap-2 flex-wrap animate-in">
+                                                         <button onClick={() => handleFilterChange('all')} className={`text-[8px] font-black px-3 py-1.5 rounded-lg transition-all border border-white/5 tracking-wider ${filterType === 'all' ? 'bg-gold-primary text-black shadow-lg shadow-gold-primary/20' : 'bg-white/5 text-slate-400 hover:text-white'}`}>ALL</button>
+                                                         <button onClick={() => handleFilterChange('full')} className={`text-[8px] font-black px-3 py-1.5 rounded-lg transition-all border border-white/5 tracking-wider ${filterType === 'full' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white/5 text-slate-400 hover:text-white'}`}>FULL</button>
+                                                         <button onClick={() => handleFilterChange('half')} className={`text-[8px] font-black px-3 py-1.5 rounded-lg transition-all border border-white/5 tracking-wider ${filterType === 'half' ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/5 text-slate-400 hover:text-white'}`}>HALF</button>
+                                                         <button onClick={() => handleFilterChange('izin')} className={`text-[8px] font-black px-3 py-1.5 rounded-lg transition-all border border-white/5 tracking-wider ${filterType === 'izin' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'bg-white/5 text-slate-400 hover:text-white'}`}>IZIN</button>
+                                                         <button onClick={() => handleFilterChange('khusus')} className={`text-[8px] font-black px-3 py-1.5 rounded-lg transition-all border border-white/5 tracking-wider ${filterType === 'khusus' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20' : 'bg-white/5 text-slate-400 hover:text-white'}`}>KHUSUS</button>
+                                                         <button onClick={() => handleFilterChange('ekstra')} className={`text-[8px] font-black px-3 py-1.5 rounded-lg transition-all border border-white/5 tracking-wider ${filterType === 'ekstra' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'bg-white/5 text-slate-400 hover:text-white'}`}>EKSTRA</button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="overflow-y-auto flex-1 custom-scrollbar pr-2">
+                                                {isHistoryLoading ? (<div className="flex justify-center items-center h-20"><div className="loader"></div></div>) : presences.length === 0 ? (<p className="text-center text-[10px] text-slate-600 mt-10 uppercase font-black tracking-widest">No Activity Record Found</p>) : (
+                                                    <>
+                                                        {/* LEVEL 1: MONTHS */}
+                                                        {logViewMode === 'months' && (
+                                                            <div className="space-y-3 animate-in">
+                                                                {availableMonths.length === 0 ? (<p className="text-center text-[10px] text-slate-500 mt-5 italic">Tidak ada data untuk filter ini</p>) : availableMonths.map((m, idx) => (
+                                                                    <div key={idx} onClick={() => handleMonthClick(m.key)} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 hover:border-gold-light/30 transition-all cursor-pointer group flex justify-between items-center">
+                                                                        <div className="flex items-center gap-4">
+                                                                            <div className="w-10 h-10 rounded-xl bg-gold-primary/10 flex items-center justify-center text-gold-light border border-gold-primary/20"><i className="fas fa-calendar-alt"></i></div>
+                                                                            <div>
+                                                                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Periode</div>
+                                                                                <div className="text-sm font-bold text-white uppercase leading-none">{m.label}</div>
+                                                                                <div className="flex gap-2 mt-1.5 text-[8px] font-black uppercase tracking-wider">
+                                                                                    <span className="text-blue-400 bg-blue-400/10 px-1 rounded border border-blue-400/20">F: {m.stats.fullTimeCount}</span>
+                                                                                    <span className="text-amber-400 bg-amber-400/10 px-1 rounded border border-amber-400/20">H: {m.stats.halfDayCount}</span>
+                                                                                    <span className="text-purple-400 bg-purple-400/10 px-1 rounded border border-purple-400/20">I: {m.stats.permitCount}</span>
+                                                                                    <span className="text-cyan-400 bg-cyan-400/10 px-1 rounded border border-cyan-400/20">K: {m.stats.khususCount}</span>
+                                                                                    <span className="text-orange-400 bg-orange-400/10 px-1 rounded border border-orange-400/20">E: {m.stats.ekstraCount}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="flex flex-col items-end gap-1">
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-[9px] bg-white/10 px-2 py-1 rounded text-slate-300 font-bold">{m.count} Item</span>
+                                                                                    <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-emerald-400 font-bold">{Math.floor(m.count / 2)} Set</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-gold-primary group-hover:text-black transition-all"><i className="fas fa-chevron-right text-xs"></i></div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* LEVEL 2: STATS + DAYS */}
+                                                        {logViewMode === 'days' && (
+                                                            <div className="space-y-3 animate-in">
+                                                                <div className="flex items-center gap-3 mb-4 cursor-pointer hover:text-white transition-colors group" onClick={handleBackToMonths}>
+                                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10"><i className="fas fa-arrow-left text-xs"></i></div>
+                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white">Kembali ke Bulan</p>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                                                    <div onClick={() => { handleFilterChange('all'); setShowDetailStats(!showDetailStats); }} className={`col-span-2 p-4 rounded-2xl border transition-all cursor-pointer group active:scale-95 ${filterType === 'all' ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-emerald-500/10 border-white/5 hover:border-emerald-500/30'}`}>
+                                                                        <div className="flex justify-between items-start">
+                                                                            <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Total Presensi</p>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">{showDetailStats ? 'Tutup Detail' : 'Lihat Detail'}</span>
+                                                                                <i className={`fas fa-chevron-${showDetailStats ? 'up' : 'down'} text-[8px] text-emerald-400 transition-transform`}></i>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-end gap-2"><p className="text-3xl font-black text-white leading-none">{monthStats.total}</p><span className="text-[9px] font-bold text-emerald-400/60 mb-1">Log Masuk</span></div>
+                                                                    </div>
+                                                                    
+                                                                    {showDetailStats && (
+                                                                        <>
+                                                                            <div onClick={() => handleFilterChange('full')} className={`p-4 rounded-2xl border transition-all cursor-pointer group active:scale-95 animate-in ${filterType === 'full' ? 'bg-blue-500/20 border-blue-500/50' : 'bg-blue-500/10 border-white/5 hover:border-blue-500/30'}`}>
+                                                                                <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Full Day</p>
+                                                                                <div className="flex items-end gap-2"><p className="text-2xl font-black text-white leading-none">{monthStats.fullTimeCount}</p><span className="text-[8px] font-bold text-blue-400/60 mb-1">Log</span></div>
+                                                                            </div>
+
+                                                                            <div onClick={() => handleFilterChange('half')} className={`p-4 rounded-2xl border transition-all cursor-pointer group active:scale-95 animate-in ${filterType === 'half' ? 'bg-amber-500/20 border-amber-500/50' : 'bg-amber-500/10 border-white/5 hover:border-amber-500/30'}`}>
+                                                                                <p className="text-[8px] font-black text-amber-400 uppercase tracking-widest mb-1">Total Half Day</p>
+                                                                                <div className="flex items-end gap-2"><p className="text-2xl font-black text-white leading-none">{monthStats.halfDayCount}</p><span className="text-[8px] font-bold text-amber-400/60 mb-1">Log</span></div>
+                                                                            </div>
+                                                                            
+                                                                            <div onClick={() => handleFilterChange('izin')} className={`p-4 rounded-2xl border transition-all cursor-pointer group active:scale-95 animate-in ${filterType === 'izin' ? 'bg-purple-500/20 border-purple-500/50' : 'bg-purple-500/10 border-white/5 hover:border-purple-500/30'}`}>
+                                                                                <p className="text-[8px] font-black text-purple-400 uppercase tracking-widest mb-1">Total Izin</p>
+                                                                                <div className="flex items-end gap-2"><p className="text-2xl font-black text-white leading-none">{monthStats.permitCount}</p><span className="text-[8px] font-bold text-purple-400/60 mb-1">X</span></div>
+                                                                            </div>
+
+                                                                            <div onClick={() => handleFilterChange('khusus')} className={`p-4 rounded-2xl border transition-all cursor-pointer group active:scale-95 animate-in ${filterType === 'khusus' ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-cyan-500/10 border-white/5 hover:border-cyan-500/30'}`}>
+                                                                                <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">Total Khusus</p>
+                                                                                <div className="flex items-end gap-2"><p className="text-2xl font-black text-white leading-none">{monthStats.khususCount}</p><span className="text-[8px] font-bold text-cyan-400/60 mb-1">Log</span></div>
+                                                                            </div>
+
+                                                                            <div onClick={() => handleFilterChange('ekstra')} className={`p-4 rounded-2xl border transition-all cursor-pointer group active:scale-95 animate-in ${filterType === 'ekstra' ? 'bg-orange-500/20 border-orange-500/50' : 'bg-orange-500/10 border-white/5 hover:border-orange-500/30'}`}>
+                                                                                <p className="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1">Total Ekstra</p>
+                                                                                <div className="flex items-end gap-2"><p className="text-2xl font-black text-white leading-none">{monthStats.ekstraCount}</p><span className="text-[8px] font-bold text-orange-400/60 mb-1">Tgs</span></div>
+                                                                            </div>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                {availableDaysInMonth.length === 0 ? (<p className="text-center text-[10px] text-slate-500 mt-5 italic">Tidak ada data untuk filter ini</p>) : availableDaysInMonth.map((dayData, idx) => (
+                                                                    <div key={idx} onClick={() => handleDayClick(dayData.dateStr)} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 hover:border-gold-light/30 transition-all cursor-pointer group flex justify-between items-center">
+                                                                        <div className="flex items-center gap-4">
+                                                                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20"><i className="fas fa-calendar-day"></i></div>
+                                                                            <div><div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tanggal</div><div className="text-sm font-bold text-white uppercase">{dayData.dateStr}</div></div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="flex items-center gap-1">
+                                                                                <span className="text-[9px] bg-white/10 px-2 py-1 rounded text-slate-300 font-bold">{dayData.logCount} Item</span>
+                                                                                <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-emerald-400 font-bold">{Math.floor(dayData.logCount / 2)} Set</span>
+                                                                            </div>
+                                                                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-gold-primary group-hover:text-black transition-all"><i className="fas fa-chevron-right text-xs"></i></div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* LEVEL 3: ENTRIES */}
+                                                        {logViewMode === 'entries' && (
+                                                            <div className="animate-in space-y-3">
+                                                                <div className="flex items-center gap-3 mb-4 cursor-pointer hover:text-white transition-colors group" onClick={handleBackToDays}>
+                                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10"><i className="fas fa-arrow-left text-xs"></i></div>
+                                                                    <div><p className="text-[8px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white">Kembali ke Tanggal</p><p className="text-xs font-bold text-white uppercase">{selectedLogDate}</p></div>
+                                                                </div>
+                                                                {dateSpecificLogs.map((p, idx) => {
+                                                                    let locStr = (p.loc || ""); 
+                                                                    let isIzin = locStr.toLowerCase().includes('izin'); 
+                                                                    let isFull = locStr.toLowerCase().includes('full'); 
+                                                                    let isHalf = locStr.toLowerCase().includes('setengah hari'); 
+                                                                    let isPulang = locStr.includes('Pulang'); 
+                                                                    let isKhusus = locStr.toLowerCase().includes('khusus');
+                                                                    let isEkstra = locStr.toLowerCase().includes('ekstra');
+
+                                                                    let durT = isIzin ? "IZIN" : (isKhusus ? "KHUSUS" : (isEkstra ? "EKSTRA" : (isFull ? "FULL" : "HALF"))); 
+                                                                    let durC = isIzin ? "bg-purple-600 text-white" : (isKhusus ? "bg-cyan-600 text-white" : (isEkstra ? "bg-orange-600 text-white" : (isFull ? "bg-blue-600 text-white" : "bg-amber-400 text-black"))); 
+                                                                    let statusColor = isPulang ? "text-rose-500" : (isIzin ? "text-purple-400" : (isKhusus ? "text-cyan-400" : (isEkstra ? "text-orange-400" : "text-emerald-400"))); 
+                                                                    let halfTimeStr = ""; if(isHalf) { const match = locStr.match(/Setengah Hari\s*\(([^)]+)\)/i); if(match) halfTimeStr = match[1]; }
+                                                                    
+                                                                    let extraDesc = "";
+                                                                    if (isEkstra) {
+                                                                       const parts = locStr.split('|');
+                                                                       const extraPart = parts.find(p => p.toLowerCase().includes('ekstra'));
+                                                                       if (extraPart) {
+                                                                           const match = extraPart.match(/\(([^)]+)\)/);
+                                                                           if (match) {
+                                                                               extraDesc = match[1];
+                                                                           }
+                                                                       }
+                                                                    }
+
+                                                                    const workDuration = isPulang ? getWorkingDuration(p, dateSpecificLogs) : null;
+                                                                    
+                                                                    // Extract Emblems using helper function
+                                                                    const { address, badges } = formatLocationData(locStr);
+
+                                                                    return (
+                                                                        <div key={idx} onClick={() => setSelectedLog(p)} className="flex gap-4 p-3 bg-white/5 rounded-xl items-center border border-white/5 group hover:border-gold-light/30 transition-all cursor-pointer active:scale-95">
+                                                                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 relative bg-black shadow-lg">
+                                                                                {p.photo ? <img src={p.photo} className="w-full h-full object-cover" alt="Bukti" /> : <div className="text-[8px] text-center mt-4">N/A</div>}
+                                                                                <div className={`absolute bottom-0 w-full text-[7px] font-black text-center uppercase tracking-tighter ${durC}`}>{durT}</div>
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex justify-between items-center mb-1"><div className="flex items-center"><span className={`text-[8px] font-black uppercase tracking-widest ${statusColor}`}>{isPulang ? 'PULANG' : (isIzin ? 'IZIN' : (isKhusus ? 'KHUSUS' : (isEkstra ? 'TAMBAHAN' : 'HADIR')))}</span>{halfTimeStr && (<span className="ml-2 px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-[8px] text-amber-300 font-mono font-bold"><i className="fas fa-hourglass-half mr-1"></i>{halfTimeStr}</span>)}</div><span className="text-white text-[10px] font-bold font-mono opacity-80">{p.time}</span></div>
+                                                                                <div className="text-[10px] text-slate-300 font-bold uppercase truncate opacity-70 tracking-wide mb-1">{p.date}</div>
+                                                                                
+                                                                                <div className="flex items-center justify-between"><div className="text-[9px] text-slate-400 font-medium truncate flex items-center gap-1.5 opacity-60 flex-1">
+                                                                                    <i className="fas fa-map-marker-alt text-gold-primary"></i> 
+                                                                                    {isEkstra && extraDesc && <span className="text-orange-400 font-bold mr-1">[{extraDesc}]</span>}
+                                                                                    {address}
+                                                                                </div><button onClick={(e) => { e.stopPropagation(); openMap(p.loc); }} className="ml-2 w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all shadow-lg"><i className="fas fa-location-arrow text-[8px]"></i></button></div>
+                                                                                
+                                                                                {/* RENDER EMBLEMS HERE */}
+                                                                                {badges.length > 0 && (
+                                                                                    <div className="flex flex-wrap gap-2 mt-1">
+                                                                                        {badges}
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {workDuration && (
+                                                                                    <div className="mt-2 text-[9px] text-gold-light font-bold bg-gold-primary/10 border border-gold-primary/20 px-2 py-1 rounded inline-block">
+                                                                                        <i className="fas fa-stopwatch mr-1"></i> Total Jam Kerja: {workDuration}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* --- AGENDA VIEW --- */
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in">
+                                    <div className="md:col-span-1">
+                                        <div className="os-window p-6 rounded-[2rem] border border-white/5 sticky top-6">
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h3 className="text-white font-black uppercase tracking-[0.2em] text-sm">
+                                                        {agendaViewMode === 'personal' ? 'Agenda Saya' : 'Agenda Bersama'}
+                                                    </h3>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => setAgendaViewMode(prev => prev === 'personal' ? 'shared' : 'personal')} className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all shadow-lg text-[10px]" title={agendaViewMode === 'personal' ? "Lihat Agenda Bersama" : "Lihat Agenda Saya"}>
+                                                            <i className={`fas fa-${agendaViewMode === 'personal' ? 'users' : 'user'}`}></i>
+                                                        </button>
+                                                        <button onClick={() => setAgendaSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all shadow-lg text-[10px]" title={agendaSortOrder === 'desc' ? "Terbaru" : "Terlama"}>
+                                                            <i className={`fas fa-sort-amount-${agendaSortOrder === 'desc' ? 'down' : 'up'}`}></i>
+                                                        </button>
+                                                        <button onClick={() => { setShowAgendaForm(!showAgendaForm); setNewAgenda({title:'',desc:'',date:'', visibility:'Private'}); }} className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition-all shadow-lg">
+                                                            <i className={`fas fa-${showAgendaForm ? 'minus' : 'plus'}`}></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* --- TOMBOL TOGGLE ARSIP --- */}
+<div className="flex justify-between items-center mb-4 px-1">
+    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+        {showArchived ? 'Arsip (Selesai)' : 'Daftar Aktif (Belum Selesai)'}
+    </p>
+    <button onClick={() => setShowArchived(!showArchived)} className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${showArchived ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'}`}>
+        <i className={`fas fa-${showArchived ? 'box-open' : 'archive'} mr-1.5`}></i>
+        {showArchived ? 'Kembali ke Aktif' : 'Lihat Arsip'}
+    </button>
+</div>
+
+{showAgendaForm && (
+    <form onSubmit={handleAddAgenda} className="space-y-3 mb-6 animate-in bg-white/5 p-4 rounded-2xl border border-white/10">
+        <input placeholder="Judul Agenda" className="w-full p-3 os-input rounded-xl text-xs" value={newAgenda.title} onChange={e => setNewAgenda({...newAgenda, title: e.target.value})} required />
+        <textarea placeholder="Catatan..." className="w-full p-3 os-input rounded-xl text-xs" rows="3" value={newAgenda.desc} onChange={e => setNewAgenda({...newAgenda, desc: e.target.value})}></textarea>
+        <input type="date" className="w-full p-3 os-input rounded-xl text-xs" value={newAgenda.date} onChange={e => setNewAgenda({...newAgenda, date: e.target.value})} required />
+        
+        {/* --- FITUR DELEGASI: CHECKLIST PEGAWAI --- */}
+        {!newAgenda.id && newAgenda.visibility === 'Private' && (
+            <div className="space-y-2 bg-black/20 p-3 rounded-xl border border-white/5">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tugaskan Kepada:</p>
+                <div className="max-h-32 overflow-y-auto custom-scrollbar grid grid-cols-1 gap-2">
+                    {/* Pilihan Saya Sendiri */}
+                    <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/10 transition-all">
+                        <input type="checkbox" className="w-4 h-4 rounded border-slate-500 accent-gold-primary cursor-pointer"
+                            checked={assignTo.length === 0 || assignTo.includes(currentUser.username)}
+                            onChange={(e) => {
+                                if(e.target.checked) setAssignTo(prev => [...prev, currentUser.username]);
+                                else setAssignTo(prev => prev.filter(u => u !== currentUser.username));
+                            }}
+                        />
+                        <span className="text-xs text-white font-bold">Saya Sendiri</span>
+                    </label>
+                    {/* List Pegawai Lain */}
+                    {allUsersList.filter(u => u.username !== currentUser.username).map(u => (
+                        <label key={u.username} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/10 transition-all">
+                            <input type="checkbox" className="w-4 h-4 rounded border-slate-500 accent-gold-primary cursor-pointer"
+                                checked={assignTo.includes(u.username)}
+                                onChange={(e) => {
+                                    if(e.target.checked) setAssignTo(prev => [...prev, u.username]);
+                                    else setAssignTo(prev => prev.filter(val => val !== u.username));
+                                }}
+                            />
+                            <div className="flex flex-col">
+                                <span className="text-xs text-white">{u.fullName}</span>
+                                <span className="text-[8px] text-slate-500 uppercase">{u.position}</span>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        )}
+        {/* ----------------------------------------- */}
+
+        <div className="flex gap-2 bg-black/30 p-1 rounded-lg">
+            <button type="button" onClick={() => setNewAgenda({...newAgenda, visibility: 'Private'})} className={`flex-1 py-2 text-[9px] font-bold rounded-md uppercase tracking-wider transition-all ${newAgenda.visibility === 'Private' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>Pribadi</button>
+            <button type="button" onClick={() => setNewAgenda({...newAgenda, visibility: 'Public'})} className={`flex-1 py-2 text-[9px] font-bold rounded-md uppercase tracking-wider transition-all ${newAgenda.visibility === 'Public' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}>Publik</button>
+        </div>
+        <button className="w-full btn-gold py-3 rounded-xl text-xs font-black uppercase tracking-widest">{newAgenda.id ? 'Perbarui Agenda' : 'Simpan / Tugaskan'}</button>
+        {newAgenda.id && (
+            <button type="button" onClick={() => { setNewAgenda({title:'',desc:'',date:'', visibility:'Private'}); setShowAgendaForm(false); }} className="w-full bg-white/10 hover:bg-white/20 text-white py-2 rounded-xl text-xs font-black uppercase tracking-widest mt-2">Batal Edit</button>
+        )}
+    </form>
+)}
+
+                                                <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                                                    {displayedAgendas.length === 0 ? (
+                                                        <div className="text-center py-10 opacity-50">
+                                                            <i className="fas fa-clipboard-list text-4xl mb-3 text-slate-500"></i>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                                                {filterDate ? `Tidak ada agenda pada ${filterDate}` : 'Belum ada agenda'}
+                                                            </p>
+                                                        </div>
+                                                    ) : displayedAgendas.map(agenda => {
+                                                        const isMine = agenda.username === currentUser.username;
+                                                        
+                                                        // --- MODIFIED LOGIC START: DETECT ADMIN TAG ---
+                                                        const descStr = agenda.desc || "";
+                                                        const isAdminTag = descStr.includes("::ADMIN::");
+                                                        const cleanDesc = descStr.replace("::ADMIN::", "").trim();
+                                                        
+                                                        let themeColor, hoverClass, barColor, badgeContent, badgeClass;
+
+                                                        if (isAdminTag) {
+                                                            themeColor = 'border-purple-500 shadow-purple-500/20 bg-purple-500';
+                                                            hoverClass = 'hover:border-purple-500 active:border-purple-500 hover:shadow-purple-500/20';
+                                                            barColor = 'bg-purple-500';
+                                                            badgeContent = 'DARI ADMIN';
+                                                            badgeClass = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+                                                        } else if (isMine) {
+                                                            themeColor = 'border-[#D4AF37] shadow-[#D4AF37]/20 bg-[#D4AF37]';
+                                                            hoverClass = 'hover:border-[#D4AF37] active:border-[#D4AF37] hover:shadow-[#D4AF37]/20';
+                                                            barColor = 'bg-[#D4AF37]';
+                                                            badgeContent = 'PRIBADI';
+                                                            badgeClass = 'bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/30';
+                                                        } else {
+                                                            themeColor = 'border-[#10B981] shadow-[#10B981]/20 bg-[#10B981]';
+                                                            hoverClass = 'hover:border-[#10B981] active:border-[#10B981] hover:shadow-[#10B981]/20';
+                                                            barColor = 'bg-[#10B981]';
+                                                            badgeContent = agenda.fullName || agenda.username;
+                                                            badgeClass = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+                                                        }
+
+                                                        return (
+                                                            <div key={agenda.id} className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${agenda.isDone ? 'bg-black/20 border-white/5 opacity-60' : `bg-white/5 border-white/10 ${hoverClass} hover:shadow-lg active:scale-[0.98]`}`} onClick={() => handleAgendaClick(agenda.date)}>
+                                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${barColor} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                                                                <div className="flex gap-3 items-start">
+                                                                        {(agendaViewMode === 'personal' || agenda.username === currentUser.username) && (
+                                                                            <label className="custom-checkbox relative flex items-center p-3 rounded-full cursor-pointer" onClick={e => e.stopPropagation()}>
+                                                                                <input type="checkbox" className="peer relative appearance-none w-5 h-5 border-2 border-slate-500 rounded-md checked:bg-emerald-500 checked:border-emerald-500 transition-all cursor-pointer" checked={agenda.isDone} onChange={() => toggleAgenda(agenda.id)} />
+                                                                                <i className="fas fa-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
+                                                                            </label>
+                                                                        )}
+                                                                    <div className="flex-1">
+                                                                        <div className="flex justify-between items-start">
+                                                                            <h4 className={`font-bold text-sm ${agenda.isDone ? 'text-slate-500 line-through' : 'text-white'}`}>{agenda.title}</h4>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className={`text-[8px] px-2 py-0.5 rounded uppercase font-bold tracking-wider border ${badgeClass}`}>
+                                                                                    {badgeContent}
+                                                                                </span>
+                                                                                {(agendaViewMode === 'personal' || agenda.username === currentUser.username) && (
+                                                                                    <div className="flex gap-1">
+                                                                                        <button onClick={(e) => { e.stopPropagation(); handleEditAgenda(agenda); }} className="text-slate-400 hover:text-gold-light transition-colors p-1" title="Edit Agenda"><i className="fas fa-pen text-xs"></i></button>
+                                                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteAgenda(agenda); }} className="text-slate-400 hover:text-rose-500 transition-colors p-1" title="Hapus Agenda"><i className="fas fa-trash text-xs"></i></button>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Tambahkan ini di bawah <h4>Judul</h4> */}
+{agenda.createdBy && agenda.createdBy !== currentUser.fullName && (
+    <span className="ml-2 text-[7px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase font-bold">
+        Oleh: {agenda.createdBy.split(' ')[0]}
+    </span>
+)}
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className="text-[10px] text-slate-400 mt-1">{cleanDesc}</p>
+                                                                        <div className="mt-3 flex items-center gap-2">
+                                                                            <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${agenda.isDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>{agenda.isDone ? 'Selesai' : 'Belum Selesai'}</span>
+                                                                            <span className="text-[9px] text-slate-500 font-mono"><i className="far fa-calendar mr-1"></i>{agenda.date}</span>
+                                                                            <span className={`text-[8px] px-2 py-0.5 rounded-md uppercase font-bold tracking-widest border ${agenda.visibility === 'Public' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>{agenda.visibility === 'Public' ? 'Publik' : 'Pribadi'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                        </div>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <div className="os-window p-6 rounded-[2rem] border border-white/5 h-full">
+                                                <div className="flex justify-between items-center mb-6"><button onClick={() => changeMonth(-1)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 transition-colors"><i className="fas fa-chevron-left"></i></button><div className="text-center"><span className="text-white font-black uppercase tracking-widest text-sm block">{currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</span><span className="text-[8px] text-slate-500 font-bold uppercase tracking-[0.2em]">{agendaViewMode === 'personal' ? 'Kalender Pribadi' : 'Kalender Bersama'}</span></div><button onClick={() => changeMonth(1)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 transition-colors"><i className="fas fa-chevron-right"></i></button></div>
+                                                <div className="grid grid-cols-7 gap-2 text-center mb-2">{['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d => (<div key={d} className="text-[10px] font-bold text-slate-500 uppercase">{d}</div>))}</div>
+                                                <div className="grid grid-cols-7 gap-2">{renderCalendar()}</div>
+                                                {filterDate && (<div className="mt-6 flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/5 animate-in"><span className="text-xs text-slate-300">Menampilkan agenda tanggal: <b className="text-white">{filterDate}</b></span><button onClick={() => setFilterDate(null)} className="text-[10px] text-gold-light hover:underline font-bold uppercase tracking-wide">Reset Filter</button></div>)}
+                                                
+                                                {agendaViewMode === 'shared' && (
+                                                    <div className="mt-4 flex gap-4 justify-center">
+                                                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#D4AF37]"></div><span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Punya Saya</span></div>
+                                                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Orang Lain</span></div>
+                                                    </div>
+                                                )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {view === 'attendance' && (
+                        <div className="w-full max-w-md animate-in flex flex-col gap-6 pb-20">
+                            <div className="flex justify-between items-center px-4">
+                                <button onClick={resetToDashboard} className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-lg active:scale-90 hover:bg-white/10 transition-colors">
+                                    <i className="fas fa-arrow-left"></i>
+                                </button>
+                                <div className="text-center">
+                                    <h3 className="text-white font-black uppercase text-xs tracking-widest">Sistem Presensi</h3>
+                                    <p className="text-[10px] text-gold-gradient font-black uppercase tracking-[0.2em]">{selectedDuration} • {presenceType}</p>
+                                    {/* INDIKATOR STATUS UNLOCK (KODE BARU) */}
+                                    <div className={`mt-1 text-[8px] font-mono px-2 py-0.5 rounded border inline-block ${currentUser?.bypassGeo ? 'bg-green-900/50 border-green-500 text-green-400' : 'bg-red-900/50 border-red-500 text-red-400'}`}>
+                                        STATUS GEMBOK: {currentUser?.bypassGeo ? "TERBUKA (UNLOCK)" : "TERTUTUP (LOCK)"}
+                                    </div>
+                                </div>
+                                <div className="w-10"></div>
+                            </div>
+
+                            <div className="os-window p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-24 bg-gold-primary/5 blur-[60px] rounded-full pointer-events-none"></div>
+                                
+                                <div className="video-container mb-6 ring-1 ring-white/10 shadow-inner relative bg-black">
+    
+    {/* OVERLAY LOADING SAAT MEMINTA IZIN KAMERA */}
+    {isRequestingCamera && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 animate-in">
+            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-white text-[10px] font-black tracking-widest uppercase animate-pulse">Menunggu Izin Kamera...</p>
+            <p className="text-emerald-400 text-[8px] mt-2 uppercase font-bold text-center px-4">Silahkan klik "Allow/Izinkan" pada pop-up browser Anda</p>
+        </div>
+    )}
+
+    {/* === BAGIAN YANG DIUBAH MULAI DARI SINI === */}
+    {!cameraFailed ? (
+        <video ref={videoRef} id="video-element" autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]"></video>
+    ) : fallbackImage ? (
+        <img src={fallbackImage} className="w-full h-full object-cover transform scale-x-[-1]" alt="Captured" />
+    ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-black/80 p-4 text-center z-10 relative">
+            <i className="fas fa-video-slash text-rose-500 text-4xl mb-3"></i>
+            <p className="text-[10px] text-white font-black mb-1 uppercase tracking-widest">AKSES LIVE KAMERA GAGAL</p>
+            <p className="text-[8px] text-rose-300 mb-5 px-2 leading-relaxed">{cameraErrorMsg}</p>
+            
+            {/* Tombol Utama: Paksa Coba Lagi Live Camera */}
+            <button onClick={startCamera} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform mb-3 w-full max-w-[220px]">
+                <i className="fas fa-sync-alt mr-2"></i> IZINKAN & COBA LAGI
+            </button>
+
+            <div className="w-full max-w-[220px] flex items-center justify-center gap-2 mb-3 opacity-40">
+                <div className="h-px bg-white flex-1"></div>
+                <span className="text-[7px] text-white uppercase font-bold tracking-widest">ATAU (JIKA TETAP GAGAL)</span>
+                <div className="h-px bg-white flex-1"></div>
+            </div>
+
+            {/* Tombol Alternatif Terakhir: Kamera Bawaan HP */}
+            <label className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer shadow-lg active:scale-95 transition-transform w-full max-w-[220px] text-center block">
+                <i className="fas fa-camera mr-2"></i> BUKA KAMERA BAWAAN
+                <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleNativeCamera} />
+            </label>
+        </div>
+    )}
+    {/* === BAGIAN YANG DIUBAH SELESAI SAMPAI SINI === */}
+
+    <div className="absolute inset-0 border-[4px] border-white/10 rounded-[1.3rem] pointer-events-none z-20"></div>
+
+                                    <div className="absolute inset-0 border-[4px] border-white/10 rounded-[1.3rem] pointer-events-none z-20"></div>
+                                    
+                                    <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-30 pointer-events-none">
+                                            <div className={`bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 ${isOutOfRange ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                <i className="fas fa-satellite-dish text-[10px]"></i>
+                                                <span className="text-[9px] font-black tracking-widest uppercase">
+                                                    {distanceToTarget !== null ? `${distanceToTarget.toFixed(3)} KM` : 'Locating...'}
+                                                </span>
+                                            </div>
+                                            <div className={`bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 ${isGpsPoor ? 'text-amber-400' : 'text-blue-400'}`}>
+                                                <i className="fas fa-crosshairs text-[10px]"></i>
+                                                <span className="text-[9px] font-black tracking-widest uppercase">
+                                                    Acc: {coords.accuracy ? Math.round(coords.accuracy) : '--'}M
+                                                </span>
+                                            </div>
+                                    </div>
+
+                                    <div className="absolute top-4 right-4 z-30 pointer-events-none">
+                                            <div className="bg-emerald-600/90 px-2.5 py-1 rounded-md flex items-center gap-2 shadow-lg border border-emerald-400/50">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></div>
+                                                <span className="text-[8px] text-white font-black uppercase tracking-tighter">System Online</span>
+                                            </div>
+                                    </div>
+
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none opacity-20">
+                                            <p className="text-white font-black text-4xl uppercase tracking-[0.5em] select-none">HNP</p>
+                                    </div>
+
+                                    <div className="absolute bottom-4 left-4 right-4 z-30 pointer-events-none flex justify-between items-end">
+                                            <div className="bg-black/60 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 shadow-lg">
+                                                <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Coordinates</p>
+                                                <p className="text-[9px] text-white font-mono font-black tracking-tighter leading-none">
+                                                    {coords.lat ? coords.lat.toFixed(6) : '--.------'}, {coords.lng ? coords.lng.toFixed(6) : '--.------'}
+                                                </p>
+                                            </div>
+                                            <div className="bg-rose-600/80 px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-rose-400/40">
+                                                <div className="w-1 h-1 rounded-full bg-white"></div>
+                                                <span className="text-[7px] text-white font-black uppercase">Live</span>
+                                            </div>
+                                    </div>
+                                </div>
+
+                                {presenceType !== 'Izin' && (
+                                    <div className="mb-6 animate-in">
+                                        <div id="user-map" className="shadow-2xl"></div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    {(presenceType === 'Izin' || (presenceType === 'Hadir' && (selectedDuration === 'Khusus' || selectedDuration === 'Ekstra'))) && (
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest ml-2 flex items-center gap-2">
+                                                <span className={selectedDuration === 'Khusus' ? 'text-cyan-400' : (selectedDuration === 'Ekstra' ? 'text-orange-400' : 'text-purple-400')}>
+                                                    {selectedDuration === 'Khusus' ? 'Deskripsi Aktivitas Khusus' : (selectedDuration === 'Ekstra' ? 'Deskripsi Tugas Tambahan' : 'Dokumentasi Alasan Izin')}
+                                                </span>
+                                            </label>
+                                            <textarea className="w-full p-4 rounded-2xl os-input text-sm border border-white/10 focus:border-gold-light/50" rows="3" placeholder="Masukkan keterangan secara lengkap..." value={permitReason} onChange={e => setPermitReason(e.target.value)}></textarea>
+                                        </div>
+                                    )}
+
+                                    {locationErrorMsg && (
+                                        <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl flex items-center gap-3 animate-in">
+                                            <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500 shrink-0"><i className="fas fa-exclamation-triangle"></i></div>
+                                            <div className="flex-1">
+                                                <p className="text-[9px] text-rose-200 font-bold leading-snug">{locationErrorMsg}</p>
+                                                <button onClick={handleRefreshGPS} className="mt-1 bg-rose-600 hover:bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-lg uppercase tracking-widest transition-all">REFRESH GPS</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {isOutOfRange && (
+                                        <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl flex items-center gap-3 animate-in">
+                                            <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500 shrink-0"><i className="fas fa-map-marker-alt"></i></div>
+                                            <p className="text-[9px] text-rose-200 font-bold leading-snug">
+                                                AKSES DITOLAK: Anda berada di luar jangkauan (500m) dari titik pusat presensi.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {/* --- TAMBAHAN: INFO JIKA BYPASS AKTIF --- */}
+{(distanceToTarget > 0.5 && currentUser?.bypassGeo && presenceType !== 'Izin') && (
+    <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-center gap-3 animate-in">
+        <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0"><i className="fas fa-unlock"></i></div>
+        <p className="text-[9px] text-amber-200 font-bold leading-snug">
+            INFO: Anda berada di luar radius, namun <span className="text-white">Admin telah membuka akses</span> untuk Anda. Silahkan lanjutkan.
+        </p>
+    </div>
+)}
+
+                                    <button 
+                                        onClick={doAbsen} 
+                                        disabled={isLoading || isOutOfRange || isGpsPoor || isLocationMissing} 
+                                        className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl flex justify-center items-center gap-3 transition-all active:scale-95 text-xs 
+                                            ${(isLoading || isOutOfRange || isGpsPoor || isLocationMissing) ? 'btn-disabled' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'}`}
+                                    >
+                                            {isLoading ? <div className="loader"></div> : (
+                                                <>
+                                                    <i className={`fas fa-${isOutOfRange ? 'times-circle' : (isLocationMissing ? 'search-location' : 'fingerprint')} text-lg`}></i> 
+                                                    {isLocationMissing ? 'MENCARI LOKASI...' : (isOutOfRange ? 'OUT OF RADIUS' : 'SUBMIT DATA PRESENSI')}
+                                                </>
+                                            )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {isProfileModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay animate-in" onClick={() => setIsProfileModalOpen(false)}>
+                            <div className="os-window w-full max-w-sm p-8 rounded-[3rem] text-center relative border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setIsProfileModalOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-white text-xl transition-colors"><i className="fas fa-times"></i></button>
+                                
+                                <div className="flex flex-col items-center">
+                                    <div className="w-32 h-32 rounded-[2rem] border-4 border-gold-light overflow-hidden shadow-2xl mb-6 cursor-pointer transform hover:scale-105 transition-transform relative group">
+                                            <img src={isEditingProfile ? editForm.profilePic : currentUser.profilePic} className="w-full h-full object-cover" alt="Profile" onClick={() => !isEditingProfile && setIsPhotoZoomOpen(true)} />
+                                            {isEditingProfile && (
+                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                    <label className="cursor-pointer text-white text-xs font-bold uppercase"><i className="fas fa-camera text-2xl mb-1 block"></i>Ganti</label>
+                                                    <input type="file" accept="image/*" onChange={handleEditPhotoChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                </div>
+                                            )}
+                                    </div>
+
+                                    {!isEditingProfile ? (
+                                        <>
+                                            <h3 className="text-white font-black text-2xl uppercase tracking-wider">{currentUser.fullName}</h3>
+                                            <p className="text-gold-light font-bold text-xs uppercase tracking-[0.3em] mb-8">{currentUser.position}</p>
+                                            
+                                            <div className="w-full space-y-4 text-left">
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 shadow-inner">
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-white uppercase tracking-wider">Login Biometrik</p>
+                                                            <p className="text-[8px] text-slate-400 mt-0.5">Aktifkan Face ID / Sidik Jari</p>
+                                                        </div>
+                                                        <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                                            <input type="checkbox" name="toggle" id="bio-toggle" className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={biometricEnabled} onChange={handleToggleBiometric}/>
+                                                            <label htmlFor="bio-toggle" className="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 shadow-inner">
+                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Nama Panggilan</p>
+                                                    <p className="text-sm font-bold text-white uppercase">{currentUser.nickname}</p>
+                                                </div>
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 shadow-inner">
+                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">NIK</p>
+                                                    <p className="text-sm font-bold text-white font-mono">{currentUser.nik}</p>
+                                                </div>
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 shadow-inner">
+                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Username</p>
+                                                    <p className="text-sm font-bold text-white font-mono">{currentUser.user || currentUser.username || '-'}</p>
+                                                </div>
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 shadow-inner">
+                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Password</p>
+                                                    <p className="text-sm font-bold text-white font-mono tracking-widest">••••••</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <button onClick={() => setIsEditingProfile(true)} className="mt-6 w-full btn-gold py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl">Edit Profil</button>
+                                        </>
+                                    ) : (
+                                        <div className="w-full space-y-3 text-left animate-in">
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-2">Nama Lengkap</label>
+                                                <input name="fullName" value={editForm.fullName} onChange={handleEditProfileChange} className="w-full p-3 os-input rounded-xl text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-2">Nama Panggilan</label>
+                                                <input name="nickname" value={editForm.nickname} onChange={handleEditProfileChange} className="w-full p-3 os-input rounded-xl text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-2">Jabatan</label>
+                                                <select name="position" value={editForm.position} onChange={handleEditProfileChange} className="w-full p-3 os-input rounded-xl text-xs outline-none">
+                                                    {jabatanOptions.map(j => <option key={j} value={j} className="text-black">{j}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-2">NIK</label>
+                                                <input name="nik" value={editForm.nik} onChange={handleEditProfileChange} className="w-full p-3 os-input rounded-xl text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-2">Username</label>
+                                                <input name="username" value={editForm.username} onChange={handleEditProfileChange} className="w-full p-3 os-input rounded-xl text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-2">Password</label>
+                                                <input name="password" type="text" value={editForm.password} onChange={handleEditProfileChange} className="w-full p-3 os-input rounded-xl text-xs" />
+                                            </div>
+
+                                            <div className="flex gap-2 mt-4">
+                                                <button onClick={() => setIsEditingProfile(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest">Batal</button>
+                                                <button onClick={saveProfileChanges} className="flex-1 btn-gold py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl">Simpan</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {!isEditingProfile && <div className="mt-8"><img src={logoUrl} alt="Logo" className="h-10 opacity-30 mx-auto logo-hologram transform scale-[2.5]" /></div>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedLog && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 modal-overlay animate-in" onClick={() => setSelectedLog(null)}>
+                            <div className="os-window w-full max-w-sm p-6 rounded-[2.5rem] relative border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-black/50 w-8 h-8 rounded-full z-10"><i className="fas fa-times"></i></button>
+                                <div className="rounded-3xl overflow-hidden aspect-video bg-black border border-white/10 mb-6 shadow-2xl"><img src={selectedLog.photo} className="w-full h-full object-cover" alt="Verification" /></div>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-end border-b border-white/5 pb-4">
+                                            <div><h4 className="text-gold-light font-black text-xs uppercase tracking-widest mb-1">Tipe Aktifitas</h4><p className="text-white font-bold text-lg uppercase">{selectedLog.loc.includes('Hadir') ? 'MASUK KERJA' : (selectedLog.loc.includes('Pulang') ? 'PULANG KERJA' : (selectedLog.loc.toLowerCase().includes('khusus') ? 'PRESENSI KHUSUS' : 'IZIN PETUGAS'))}</p></div>
+                                            <div className="text-right"><span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black px-3 py-1 rounded-full border border-emerald-500/30 uppercase tracking-tighter">Verified</span></div>
+                                    </div>
+                                    {(selectedLog.loc || "").toLowerCase().includes('setengah hari') && (selectedLog.loc || "").match(/Setengah Hari\s*\(([^)]+)\)/i) && (
+                                        <div className="bg-amber-900/10 p-3 rounded-xl border border-amber-500/20 text-center">
+                                            <p className="text-[9px] text-amber-500 font-black uppercase tracking-widest mb-1">Durasi Kerja Setengah Hari</p>
+                                            <p className="text-lg font-mono font-bold text-amber-300"><i className="fas fa-clock mr-2"></i>{(selectedLog.loc || "").match(/Setengah Hari\s*\(([^)]+)\)/i)[1]}</p>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white/5 p-4 rounded-2xl border border-white/5"><p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Waktu</p><p className="text-sm font-bold text-white font-mono">{selectedLog.time}</p></div>
+                                        <div className="bg-white/5 p-4 rounded-2xl border border-white/5"><p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Tanggal</p><p className="text-sm font-bold text-white font-mono">{selectedLog.date}</p></div>
+                                    </div>
+                                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        <div className="flex justify-between items-center mb-2"><p className="text-[8px] font-black text-slate-500 uppercase tracking-widest"><i className="fas fa-map-marker-alt mr-1"></i> Data Keterangan & Lokasi</p><button onClick={() => openMap(selectedLog.loc)} className="text-[8px] font-bold text-blue-400 uppercase tracking-widest hover:text-white border border-blue-500/30 px-2 py-1 rounded-lg hover:bg-blue-600 transition-all"><i className="fas fa-external-link-alt mr-1"></i> LACAK LOKASI</button></div>
+                                        <div className="bg-black/40 p-3 rounded-xl border border-white/5">
+                                            <p className="text-[11px] text-slate-300 font-medium leading-relaxed italic">{formatLocationData(selectedLog.loc).address}</p>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {formatLocationData(selectedLog.loc).badges}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {selectedLog.loc.includes("Pulang") && (
+                                        <div className="bg-white/10 p-3 rounded-xl border border-white/10 mt-4 text-center">
+                                            <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Durasi Kerja</p>
+                                            <p className="text-lg text-gold-light font-mono font-bold">{getWorkingDuration(selectedLog, dateSpecificLogs) || "Data Hadir Tidak Ditemukan"}</p>
+                                        </div>
+                                    )}
+                                    
+                                    <button onClick={() => setSelectedLog(null)} className="w-full btn-gold py-3 rounded-xl text-[10px] uppercase font-black tracking-widest shadow-xl mt-2">TUTUP DETAIL</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {isPhotoZoomOpen && (<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay animate-in" onClick={() => setIsPhotoZoomOpen(false)}><div className="max-w-full max-h-full p-2 bg-white/10 rounded-3xl backdrop-blur-md shadow-2xl relative" onClick={e => e.stopPropagation()}><button onClick={() => setIsPhotoZoomOpen(false)} className="absolute -top-10 right-0 text-white text-3xl font-black">&times;</button><img src={currentUser.profilePic} className="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10" alt="Zoomed" /><div className="mt-4 text-center"><button onClick={() => setIsPhotoZoomOpen(false)} className="btn-gold px-10 py-3 rounded-xl text-[10px] uppercase font-black tracking-widest shadow-xl">Tutup Pratinjau</button></div></div></div>)}
+                    <canvas ref={canvasRef} className="hidden" />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AdminApp />);
+    </script>
+</body>
+</html>
